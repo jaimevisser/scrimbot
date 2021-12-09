@@ -4,7 +4,7 @@ import os
 from datetime import datetime, timezone
 
 import discord
-from discord.enums import SlashCommandOptionType
+from discord.enums import SlashCommandOptionType, ChannelType
 from discord.commands import Option
 
 with open('bot.token', 'r') as file:
@@ -103,5 +103,13 @@ async def log(
 
     if nothing_found:
         await ctx.respond("Nothing in the log")
+
+
+@bot.slash_command(guild_ids=[908282497769558036])
+async def mixed(
+        ctx):
+    thread = await ctx.channel.create_thread(name="example thread", type=ChannelType.public_thread)
+    await ctx.respond("Mixed created", ephemeral=True)
+
 
 bot.run(token)
