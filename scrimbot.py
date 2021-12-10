@@ -1,44 +1,15 @@
-import json
+
 import math
-import os
 from datetime import datetime, timezone
 
 import discord
 from discord.enums import SlashCommandOptionType, ChannelType
 from discord.commands import Option
 
-with open('bot.token', 'r') as file:
-    token = file.read().strip()
-
-try:
-    with open('data.json', 'r') as file:
-        data = json.load(file)
-except FileNotFoundError:
-    print("data file not found, initialising")
-    data = {}
-except:
-    os.rename('data.json', 'baddata.json')
-    data = {}
+from data import ScrimbotData
 
 bot = discord.Bot()
-
-
-def sync():
-    with open('data.json', 'w') as jsonfile:
-        json.dump(data, jsonfile)
-
-
-def get_notes(guild) -> list:
-    guild = str(guild)
-    if guild not in data:
-        data[guild] = {}
-    if "notes" not in data[guild]:
-        data[guild]["notes"] = []
-    return data[guild]["notes"]
-
-
-def warnings(guild, member):
-    return [d for d in get_notes(guild) if 'warning' in d and d['user'] == member]
+data = ScrimbotData()
 
 
 @bot.slash_command(guild_ids=[908282497769558036])
@@ -47,12 +18,12 @@ async def note(
         name: Option(SlashCommandOptionType.user, "User to make a note for"),
         text: Option(str, "Note")
 ):
-    get_notes(ctx.guild_id).append({
+    data.get_notes(ctx.guild_id).append({
         "user": name.id,
         "time": datetime.now(timezone.utc).timestamp(),
         "text": text,
         "author": ctx.author.id})
-    sync()
+    data.sync()
     await ctx.respond("Note added", ephemeral=True)
 
 
@@ -62,14 +33,14 @@ async def warn(
         name: Option(SlashCommandOptionType.user, "User to make a note for"),
         text: Option(str, "Warning")
 ):
-    get_notes(ctx.guild_id).append({
+    data.get_notes(ctx.guild_id).append({
         "user": name.id,
         "time": datetime.now(timezone.utc).timestamp(),
         "text": text,
         "author": ctx.author.id,
         "warning": True})
-    sync()
-    all_warns = warnings(ctx.guild_id, name.id)
+    data.sync()
+    all_warns = data.warnings(ctx.guild_id, name.id)
     await name.send(f"You have been warned by {ctx.author.mention}: {text}")
     await name.send(f"Your warning count is now at {len(all_warns)}")
     await ctx.respond("User warned", ephemeral=True)
@@ -83,7 +54,7 @@ async def log(
     nothing_found = True
     output = ""
 
-    for note in get_notes(ctx.guild_id):
+    for note in data.get_notes(ctx.guild_id):
         if note['user'] == name.id:
             icon = ""
             if "warning" in note:
@@ -109,7 +80,8 @@ async def log(
 async def mixed(
         ctx):
     thread = await ctx.channel.create_thread(name="example thread", type=ChannelType.public_thread)
+
     await ctx.respond("Mixed created", ephemeral=True)
 
 
-bot.run(token)
+bot.run(data.token)
