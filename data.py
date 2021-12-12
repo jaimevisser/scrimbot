@@ -23,12 +23,18 @@ class ScrimbotData:
             json.dump(self.data, jsonfile)
 
     def get_notes(self, guild) -> list:
+        return self.__getlist(guild, "notes")
+
+    def get_mixeds(self, guild) -> list:
+        return self.__getlist(guild, "mixeds")
+
+    def __getlist(self, guild, key: str) -> list:
         guild = str(guild)
         if guild not in self.data:
             self.data[guild] = {}
-        if "notes" not in self.data[guild]:
-            self.data[guild]["notes"] = []
-        return self.data[guild]["notes"]
+        if key not in self.data[guild]:
+            self.data[guild][key] = []
+        return self.data[guild][key]
 
     def warnings(self, guild, member):
         return [d for d in self.get_notes(guild) if 'warning' in d and d['user'] == member]

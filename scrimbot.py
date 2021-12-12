@@ -1,8 +1,9 @@
-
 import math
-from datetime import datetime, timezone
+import re
+from datetime import datetime, timezone, timedelta
 
 import discord
+import pytz
 from discord.enums import SlashCommandOptionType, ChannelType
 from discord.commands import Option
 
@@ -54,6 +55,13 @@ async def log(
     nothing_found = True
     output = ""
 
+    async def parse():
+        nonlocal output, nothing_found
+        if nothing_found:
+            output = f"**Log for {name}**" + output
+        await ctx.respond(output)
+        nothing_found = False
+
     for note in data.get_notes(ctx.guild_id):
         if note['user'] == name.id:
             icon = ""
@@ -61,16 +69,14 @@ async def log(
                 icon = "⚠ "
             new = f"<t:{math.floor(note['time'])}:d> {icon}: {note['text']}"
 
-            if len(output) + len(new) > 2000:
-                await ctx.respond(output)
-                nothing_found = False
+            if len(output) + len(new) > 1800:
+                await parse()
                 output = ""
 
             output += "\n" + new
 
     if len(output) > 0:
-        await ctx.respond(output)
-        nothing_found = False
+        await parse()
 
     if nothing_found:
         await ctx.respond("Nothing in the log")
@@ -78,10 +84,28 @@ async def log(
 
 @bot.slash_command(guild_ids=[908282497769558036])
 async def mixed(
-        ctx):
-    thread = await ctx.channel.create_thread(name="example thread", type=ChannelType.public_thread)
+        ctx,
+        time: Option(str, "Time (UK timezone) when the mixed will start, format must be 14:00")
+):
+    match = re.match("([0-9]{1,2}):?([0-9]{2})", str(time))
 
-    await ctx.respond("Mixed created", ephemeral=True)
+    if not match:
+        await ctx.respond("Invalid time, format must be 14:00", ephemeral=True)
+        return
+
+    mixedhour, mixedminutes = match.groups()
+
+    uknow = datetime.now(pytz.timezone("Europe/London"))
+    mixedtime = uknow.replace(hour=int(mixedhour), minute=int(mixedminutes), second=0, microsecond=0)
+
+    if mixedtime < uknow:
+        mixedtime += timedelta(days=1)
+
+    mixed_utc = math.floor(mixedtime.timestamp())
+
+    thread = await ctx.channel.create_thread(name=f"{mixedhour}:{mixedminutes} (0)", type=ChannelType.public_thread)
+    await thread.send("Whoop! Another mixed, lets have fun!")
+    await ctx.respond(f"Mixed created at <t:{mixed_utc}:t> (your local time)", ephemeral=True)
 
 
 bot.run(data.token)
