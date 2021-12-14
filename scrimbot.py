@@ -8,12 +8,15 @@ from discord.enums import SlashCommandOptionType, ChannelType
 from discord.commands import Option
 
 from data import ScrimbotData
+from mixedview import MixedView
 
 bot = discord.Bot()
 data = ScrimbotData()
 
+enabled_guilds = [908282497769558036]
 
-@bot.slash_command(guild_ids=[908282497769558036])
+
+@bot.slash_command(guild_ids=enabled_guilds)
 async def note(
         ctx,
         name: Option(SlashCommandOptionType.user, "User to make a note for"),
@@ -28,7 +31,7 @@ async def note(
     await ctx.respond("Note added", ephemeral=True)
 
 
-@bot.slash_command(guild_ids=[908282497769558036])
+@bot.slash_command(guild_ids=enabled_guilds)
 async def warn(
         ctx,
         name: Option(SlashCommandOptionType.user, "User to make a note for"),
@@ -47,7 +50,7 @@ async def warn(
     await ctx.respond("User warned", ephemeral=True)
 
 
-@bot.slash_command(guild_ids=[908282497769558036])
+@bot.slash_command(guild_ids=enabled_guilds)
 async def log(
         ctx,
         name: Option(SlashCommandOptionType.user, "User to make a note for")
@@ -82,7 +85,7 @@ async def log(
         await ctx.respond("Nothing in the log")
 
 
-@bot.slash_command(guild_ids=[908282497769558036])
+@bot.slash_command(guild_ids=enabled_guilds)
 async def mixed(
         ctx,
         time: Option(str, "Time (UK timezone) when the mixed will start, format must be 14:00")
@@ -95,6 +98,10 @@ async def mixed(
 
     mixedhour, mixedminutes = match.groups()
 
+    if int(mixedhour) > 23 or int(mixedminutes) > 59:
+        await ctx.respond("Invalid time.", ephemeral=True)
+        return
+
     uknow = datetime.now(pytz.timezone("Europe/London"))
     mixedtime = uknow.replace(hour=int(mixedhour), minute=int(mixedminutes), second=0, microsecond=0)
 
@@ -104,8 +111,8 @@ async def mixed(
     mixed_utc = math.floor(mixedtime.timestamp())
 
     thread = await ctx.channel.create_thread(name=f"{mixedhour}:{mixedminutes} (0)", type=ChannelType.public_thread)
-    await thread.send("Whoop! Another mixed, lets have fun!")
-    await ctx.respond(f"Mixed created at <t:{mixed_utc}:t> (your local time)", ephemeral=True)
+    await thread.send("Whoop! Another mixed, lets have fun!", view=MixedView(str(thread.id)))
+    await ctx.respond(f"Mixed created for <t:{mixed_utc}:t> (your local time)", ephemeral=True)
 
 
 bot.run(data.token)
