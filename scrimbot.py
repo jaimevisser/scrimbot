@@ -22,6 +22,7 @@ async def note(
         name: Option(SlashCommandOptionType.user, "User to make a note for"),
         text: Option(str, "Note")
 ):
+    """Make a note in a users' log."""
     data.get_notes(ctx.guild_id).append({
         "user": name.id,
         "time": datetime.now(timezone.utc).timestamp(),
@@ -37,6 +38,7 @@ async def warn(
         name: Option(SlashCommandOptionType.user, "User to make a note for"),
         text: Option(str, "Warning")
 ):
+    """Warn a user. A DM will be sent to the user as well."""
     data.get_notes(ctx.guild_id).append({
         "user": name.id,
         "time": datetime.now(timezone.utc).timestamp(),
@@ -55,6 +57,7 @@ async def log(
         ctx,
         name: Option(SlashCommandOptionType.user, "User to make a note for")
 ):
+    """Display the log of a user, will print the log in the current channel."""
     nothing_found = True
     output = ""
 
@@ -90,6 +93,7 @@ async def mixed(
         ctx,
         time: Option(str, "Time (UK timezone) when the mixed will start, format must be 14:00")
 ):
+    """Start a mixed game in this channel."""
     match = re.match("([0-9]{1,2}):?([0-9]{2})", str(time))
 
     if not match:
