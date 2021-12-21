@@ -7,11 +7,14 @@ import pytz
 from discord.enums import SlashCommandOptionType, ChannelType
 from discord.commands import Option
 
+import discutils
 from data import ScrimbotData
-from mixedview import MixedView
+from mixed import Mixed
 
 bot = discord.Bot()
 data = ScrimbotData()
+
+mixeds = []
 
 enabled_guilds = [908282497769558036]
 
@@ -96,6 +99,8 @@ async def mixed(
     """Start a mixed game in this channel."""
     match = re.match("([0-9]{1,2}):?([0-9]{2})", str(time))
 
+    mixedobj = {"players": [], "reserves": []}
+
     if not match:
         await ctx.respond("Invalid time, format must be 14:00", ephemeral=True)
         return
@@ -114,9 +119,18 @@ async def mixed(
 
     mixed_utc = math.floor(mixedtime.timestamp())
 
+    mixedobj["utc"] = mixed_utc
+
     thread = await ctx.channel.create_thread(name=f"{mixedhour}:{mixedminutes} (0)", type=ChannelType.public_thread)
-    await thread.send("Whoop! Another mixed, lets have fun!", view=MixedView(str(thread.id)))
-    await ctx.respond(f"Mixed created for <t:{mixed_utc}:t> (your local time)", ephemeral=True)
+    mixedobj["thread"] = thread.id
+    message = await thread.send(f"Scrim at {discutils.timestamp(mixedtime)}")
+    mixedobj["message"] = message.id
+    data.get_mixeds(ctx.guild_id).append(mixedobj)
+    data.sync()
+
+    mixeds.append(await Mixed.create(bot, mixedobj, data.sync))
+
+    await ctx.respond(f"Mixed created for {discutils.timestamp(mixedtime)} (your local time)", ephemeral=True)
 
 
 bot.run(data.token)

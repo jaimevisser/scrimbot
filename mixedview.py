@@ -21,19 +21,25 @@ class MixedButton(discord.ui.Button):
 
 
 class MixedView(discord.ui.View):
-    def __init__(self, custom_id: str):
+    def __init__(self, mixed):
         super().__init__(timeout=None)
-        self.__custom_id = custom_id
+        self.__mixed = mixed
+        custom_id = str(mixed.id)
 
-        self.add_item(MixedButton(
-            label="Join", style=discord.ButtonStyle.green, custom_id=custom_id + ":join", callback_func=self.join))
-        self.add_item(MixedButton(
+        self.__button_join = MixedButton(
+            label="Join", style=discord.ButtonStyle.green, custom_id=custom_id + ":join", callback_func=self.join)
+        self.__button_reserve = MixedButton(
             label="Reserve", style=discord.ButtonStyle.blurple, custom_id=custom_id + ":reserve",
-            callback_func=self.reserve))
-        self.add_item(MixedButton(
-            label="Leave", style=discord.ButtonStyle.red, custom_id=custom_id + ":leave", callback_func=self.leave))
+            callback_func=self.reserve)
+        self.__button_leave = MixedButton(
+            label="Leave", style=discord.ButtonStyle.red, custom_id=custom_id + ":leave", callback_func=self.leave)
+
+        self.add_item(self.__button_join)
+        self.add_item(self.__button_reserve)
+        self.add_item(self.__button_leave)
 
     async def join(self, interaction: discord.Interaction):
+        await self.__mixed.join(interaction.user)
         await interaction.response.send_message("Added you to the mixed.", ephemeral=True)
 
     async def reserve(self, interaction: discord.Interaction):
