@@ -1,3 +1,4 @@
+import logging
 import math
 import re
 from datetime import datetime, timezone, timedelta
@@ -11,12 +12,38 @@ import discutils
 from data import ScrimbotData
 from mixed import Mixed
 
+logging.basicConfig(level=logging.DEBUG)
+
 bot = discord.Bot()
 data = ScrimbotData()
 
 mixeds = []
 
+bot.initialised = False
+
 enabled_guilds = [908282497769558036]
+
+
+def remove_mixed(m: Mixed):
+    if m in mixeds:
+        mixeds.remove(m)
+    data.get_mixeds(m.guild).remove(m.data)
+    data.sync()
+
+
+async def create_mixed(guild, mixed_data: dict):
+    return await Mixed.create(bot, guild, mixed_data, data.sync, remove_mixed)
+
+
+@bot.event
+async def on_ready():
+    if not bot.initialised:
+        bot.initialised = True
+        for guild in enabled_guilds:
+            for mixed_data in data.get_mixeds(guild):
+                mixeds.append(await create_mixed(guild, mixed_data))
+
+        print("Bot initialised")
 
 
 @bot.slash_command(guild_ids=enabled_guilds)
@@ -121,14 +148,15 @@ async def mixed(
 
     mixedobj["utc"] = mixed_utc
 
-    thread = await ctx.channel.create_thread(name=f"{mixedhour}:{mixedminutes} (0)", type=ChannelType.public_thread)
+    thread = await ctx.channel.create_thread(name=f"{mixedhour}{mixedminutes}", type=ChannelType.public_thread)
+
     mixedobj["thread"] = thread.id
     message = await thread.send(f"Scrim at {discutils.timestamp(mixedtime)}")
     mixedobj["message"] = message.id
     data.get_mixeds(ctx.guild_id).append(mixedobj)
     data.sync()
 
-    mixeds.append(await Mixed.create(bot, mixedobj, data.sync))
+    mixeds.append(await create_mixed(ctx.guild_id, mixedobj))
 
     await ctx.respond(f"Mixed created for {discutils.timestamp(mixedtime)} (your local time)", ephemeral=True)
 

@@ -25,6 +25,7 @@ class MixedView(discord.ui.View):
         super().__init__(timeout=None)
         self.__mixed = mixed
         custom_id = str(mixed.id)
+        self.use = "before"
 
         self.__button_join = MixedButton(
             label="Join", style=discord.ButtonStyle.green, custom_id=custom_id + ":join", callback_func=self.join)
@@ -43,7 +44,26 @@ class MixedView(discord.ui.View):
         await interaction.response.send_message("Added you to the mixed.", ephemeral=True)
 
     async def reserve(self, interaction: discord.Interaction):
+        await self.__mixed.reserve(interaction.user)
         await interaction.response.send_message("Put you on the reserve list.", ephemeral=True)
 
     async def leave(self, interaction: discord.Interaction):
+        await self.__mixed.leave(interaction.user)
         await interaction.response.send_message("Removed you from the mixed.", ephemeral=True)
+
+
+class MixedRunningView(discord.ui.View):
+    def __init__(self, mixed):
+        super().__init__(timeout=None)
+        self.__mixed = mixed
+        custom_id = str(mixed.id)
+        self.use = "running"
+
+        self.__button_call_reserve = MixedButton(
+            label="Call reserve", style=discord.ButtonStyle.blurple, custom_id=custom_id + ":call",
+            callback_func=self.call_reserve)
+
+        self.add_item(self.__button_call_reserve)
+
+    async def call_reserve(self, interaction: discord.Interaction):
+        await interaction.response.send_message("Called a reserve", ephemeral=True)
