@@ -66,4 +66,5 @@ class MixedRunningView(discord.ui.View):
         self.add_item(self.__button_call_reserve)
 
     async def call_reserve(self, interaction: discord.Interaction):
-        await interaction.response.send_message("Called a reserve", ephemeral=True)
+        callout = await self.__mixed.call_reserve()
+        await interaction.response.send_message(callout)

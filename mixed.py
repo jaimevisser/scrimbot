@@ -1,6 +1,8 @@
 import asyncio
 import math
 from datetime import datetime, timedelta
+
+import discord
 import pytz
 from discord import Bot, Member
 
@@ -49,7 +51,7 @@ class Mixed:
             self.__view = None
 
         elif (self.time < datetime.now(tzuk) or "started" in self.data) and self.__view.use == "before":
-            if len(self.data["reserve"]) > 0:
+            if await self.num_reserves() > 0 and await self.num_players() > 0 and self.__get_next_reserve() is not None:
                 self.__view = MixedRunningView(self)
             else:
                 self.__view = None
@@ -67,25 +69,34 @@ class Mixed:
 
         print("done")
 
+    async def num_players(self):
+        return len(self.data["players"])
+
+    async def num_reserves(self):
+        return len(self.data["reserve"])
+
     async def __generate_message(self):
         message = f"Mixed scrim at {discutils.timestamp(self.time)}\n"
-        if len(self.data["players"]) > 0:
-            players = len(self.data["players"])
+        if await self.num_players() > 0:
+            players = await self.num_players()
             maxplayers = self.__size
             message += f"\n**Players ({players}/{maxplayers})**\n"
             for player in self.data["players"]:
                 message += f"- {player['mention']}\n"
 
-        if len(self.data["reserve"]) > 0:
-            reserves = len(self.data["reserve"])
+        if await self.num_reserves() > 0:
+            reserves = await self.num_reserves()
             message += f"\n**Reserves ({reserves})**\n"
             for player in self.data["reserve"]:
-                message += f"- {player['mention']}\n"
+                called = ""
+                if "called" in player:
+                    called = "(called)"
+                message += f"- {player['mention']} {called}\n"
 
         return message
 
     async def __generate_name(self):
-        players = len(self.data["players"])
+        players = await self.num_players()
 
         time = self.time.strftime("%H%M")
 
@@ -94,7 +105,7 @@ class Mixed:
     async def join(self, user: Member):
         self.__remove_reserve(user.id)
 
-        if len(self.data["players"]) < self.__size:
+        if await self.num_players() < self.__size:
             await self.__thread.add_user(user)
 
             if not any(u["id"] == user.id for u in self.data["players"]):
@@ -117,6 +128,23 @@ class Mixed:
 
         self.__sync()
         await self.update()
+
+    async def call_reserve(self):
+        callout = "No reserve available"
+
+        reserve = self.__get_next_reserve()
+        if reserve is not None:
+            reserve["called"] = True
+            callout = f"{reserve['mention']} you are needed! Get online if you can!"
+            self.__sync()
+        await self.update()
+        return callout
+
+    def __get_next_reserve(self):
+        for r in self.data["reserve"]:
+            if "called" not in r:
+                return r
+        return None
 
     def __remove_player(self, player_id):
         self.__remove_from_playerlist("players", player_id)
@@ -154,14 +182,17 @@ class Mixed:
 
         await self.update()
 
+        if await self.num_players() == 0:
+            await self.__thread.edit(archived=True)
+
     async def __generate_start_message(self):
-        if len(self.data["players"]) == 0:
-            return "Sad moment, nobody signed up!"
+        if await self.num_players() == 0:
+            return "Sad moment, nobody signed up! Archiving the thread."
 
         players = ""
-        numplayers = len(self.data["players"])
+        numplayers = await self.num_players()
         reserves = ""
-        numreserves = len(self.data["reserve"])
+        numreserves = await self.num_reserves()
 
         for player in self.data["players"]:
             players += f"{player['mention']} "
@@ -179,7 +210,7 @@ class Mixed:
                    f"Reserves, we need you!\n" \
                    f"{reserves}"
 
-        message = f"Not enough people, feel free to get online and try to get it started anyway!\n" \
+        message = f"Not enough players, feel free to get online and try to get it started anyway!\n" \
                   f"{players}\n"
 
         if numreserves > 0:
