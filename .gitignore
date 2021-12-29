@@ -113,9 +113,5 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-# Discord bot token
-bot.token
-
 # Bot data
-data.json
-baddata.json
+data/**
