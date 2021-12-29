@@ -1,2 +1,2 @@
-py-cord @ git+https://github.com/Pycord-Development/pycord@master
+py-cord @ git+https://github.com/Pycord-Development/pycord@6c8eea4eb01c62680ff8e414ec1d2e73903bd82a
 pytz
