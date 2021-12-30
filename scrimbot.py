@@ -117,6 +117,30 @@ async def warn(
 
 @bot.slash_command(guild_ids=enabled_guilds)
 @is_mod()
+async def rmlog(
+        ctx,
+        name: Option(SlashCommandOptionType.user, "User to make a note for"),
+        id: Option(str, "ID of the note/warning to remove")
+):
+    """Remove a single warning/note from a user"""
+    toremove = None
+
+    guildnotes = data.get_notes(ctx.guild_id)
+
+    for note in guildnotes:
+        if note['user'] == name.id and note["id"] == id:
+            toremove = note
+
+    if toremove is not None:
+        guildnotes.remove(toremove)
+        data.sync()
+        await ctx.respond("Note/warn removed", ephemeral=True)
+    else:
+        await ctx.respond("No matching note/warn found", ephemeral=True)
+
+
+@bot.slash_command(guild_ids=enabled_guilds)
+@is_mod()
 async def log(
         ctx,
         name: Option(SlashCommandOptionType.user, "User to make a note for")
@@ -151,7 +175,7 @@ async def log(
         await parse()
 
     if nothing_found:
-        await ctx.respond("Nothing in the log")
+        await ctx.respond(f"Nothing in the log for {name}")
 
 
 @bot.slash_command(guild_ids=enabled_guilds)
