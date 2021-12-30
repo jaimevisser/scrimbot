@@ -7,10 +7,9 @@ from typing import Callable
 
 import discord
 import pytz
-from discord import Member
-from discord.enums import SlashCommandOptionType, ChannelType
 from discord.commands import Option
 from discord.commands.permissions import Permission
+from discord.enums import SlashCommandOptionType, ChannelType
 
 import discutils
 from data import ScrimbotData
@@ -35,7 +34,7 @@ def remove_mixed(m: Mixed):
     data.sync()
 
 
-async def create_mixed(guild, mixed_data: dict):
+async def create_mixed(guild: int, mixed_data: dict):
     return await Mixed.create(bot, guild, mixed_data, data.sync, remove_mixed)
 
 
@@ -179,18 +178,24 @@ async def log(
 
 
 @bot.slash_command(guild_ids=enabled_guilds)
-async def mixed(
+async def scrim(
         ctx,
-        time: Option(str, "Time (UK timezone) when the mixed will start, format must be 14:00")
+        time: Option(str, "Time (UK timezone) when the scrim will start, format must be 14:00")
 ):
-    """Start a mixed game in this channel."""
+    """Start a scrim in this channel."""
     match = re.match("([0-9]{1,2}):?([0-9]{2})", str(time))
 
     mixedobj = {"players": [], "reserves": []}
 
     if not match:
-        await ctx.respond("Invalid time, format must be 14:00", ephemeral=True)
+        await ctx.respond("Invalid time, format must be 14:00!", ephemeral=True)
         return
+
+    if not ctx.channel.id in map(lambda x: int(x), data.config[str(ctx.guild_id)]["mixedchannels"].keys()):
+        await ctx.respond("This is not a channel for organising scrims!", ephemeral=True)
+        return
+
+    scrimmer_role = data.config[str(ctx.guild_id)]["mixedchannels"][str(ctx.channel.id)]["role"]
 
     mixedhour, mixedminutes = match.groups()
 
@@ -213,12 +218,13 @@ async def mixed(
     mixedobj["thread"] = thread.id
     message = await thread.send(f"Scrim at {discutils.timestamp(mixedtime)}")
     mixedobj["message"] = message.id
+    mixedobj["role"] = scrimmer_role
     data.get_mixeds(ctx.guild_id).append(mixedobj)
     data.sync()
 
     mixeds.append(await create_mixed(ctx.guild_id, mixedobj))
 
-    await ctx.respond(f"Mixed created for {discutils.timestamp(mixedtime)} (your local time)", ephemeral=True)
+    await ctx.respond(f"Scrim created for {discutils.timestamp(mixedtime)} (your local time)", ephemeral=True)
 
 
 bot.run(data.token)

@@ -36,6 +36,7 @@ class Mixed:
     async def __init(self):
         self.__thread = await self.__bot.fetch_channel(self.id)
         self.__message = await self.__thread.fetch_message(self.data["message"])
+        self.__role = (await self.__bot.fetch_guild(int(self.guild))).get_role(self.data["role"])
 
         self.__bot.loop.create_task(self.__start_mixed())
 
@@ -75,7 +76,7 @@ class Mixed:
         return len(self.data["reserve"])
 
     async def __generate_message(self):
-        message = f"Mixed scrim at {discutils.timestamp(self.time)}\n"
+        message = f"{self.__role.mention}! Scrim at {discutils.timestamp(self.time)}\n"
         if await self.num_players() > 0:
             players = await self.num_players()
             maxplayers = self.__size
@@ -207,11 +208,11 @@ class Mixed:
             reserves += f"{player['mention']} "
 
         if numplayers == self.__size:
-            return f"Mixed starting, get online!\n" \
+            return f"Scrim starting, get online!\n" \
                    f"{players}"
 
         if numplayers + numreserves >= self.__size:
-            return f"Mixed starting, get online!\n" \
+            return f"Scrim starting, get online!\n" \
                    f"{players}\n" \
                    f"Reserves, we need you!\n" \
                    f"{reserves}"
