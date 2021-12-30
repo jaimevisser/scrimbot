@@ -108,7 +108,7 @@ class Mixed:
             await self.__thread.add_user(user)
 
             if not any(u["id"] == user.id for u in self.data["players"]):
-                self.data["players"].append({"id": user.id, "name": user.display_name, "mention": user.mention})
+                self.data["players"].append(discutils.user_dict(user))
                 self.__sync()
                 await self.update()
 
@@ -117,7 +117,7 @@ class Mixed:
 
         await self.__thread.add_user(user)
         if not any(u["id"] == user.id for u in self.data["reserve"]):
-            self.data["reserve"].append({"id": user.id, "name": user.display_name, "mention": user.mention})
+            self.data["reserve"].append(discutils.user_dict(user))
             self.__sync()
             await self.update()
 

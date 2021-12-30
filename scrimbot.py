@@ -38,6 +38,7 @@ async def create_mixed(guild, mixed_data: dict):
 @bot.event
 async def on_ready():
     if not bot.initialised:
+
         bot.initialised = True
         for guild in enabled_guilds:
             for mixed_data in data.get_mixeds(guild):
@@ -53,12 +54,16 @@ async def note(
         text: Option(str, "Note")
 ):
     """Make a note in a users' log."""
+
+    modchannel = await bot.fetch_channel(data.config[str(ctx.guild_id)]["modchannel"])
+
     data.get_notes(ctx.guild_id).append({
-        "user": name.id,
+        "user": discutils.user_dict(name),
         "time": datetime.now(timezone.utc).timestamp(),
         "text": text,
-        "author": ctx.author.id})
+        "author": discutils.user_dict(ctx.author)})
     data.sync()
+    await modchannel.send(f"User {name.mention} has had a note added by {ctx.author.mention}: {text}")
     await ctx.respond("Note added", ephemeral=True)
 
 
@@ -69,16 +74,20 @@ async def warn(
         text: Option(str, "Warning")
 ):
     """Warn a user. A DM will be sent to the user as well."""
+    modchannel = await bot.fetch_channel(data.config[str(ctx.guild_id)]["modchannel"])
+
     data.get_notes(ctx.guild_id).append({
-        "user": name.id,
+        "user": discutils.user_dict(name),
         "time": datetime.now(timezone.utc).timestamp(),
         "text": text,
-        "author": ctx.author.id,
+        "author": discutils.user_dict(ctx.author),
         "warning": True})
     data.sync()
     all_warns = data.warnings(ctx.guild_id, name.id)
-    await name.send(f"You have been warned by {ctx.author.mention}: {text}")
-    await name.send(f"Your warning count is now at {len(all_warns)}")
+    await name.send(f"You have been warned by {ctx.author.mention}: {text}\n"
+                    f"Your warning count is now at {len(all_warns)}")
+    await modchannel.send(f"User {name.mention} has been warned by {ctx.author.mention}: {text}\n"
+                          f"Their warning count is now at {len(all_warns)}")
     await ctx.respond("User warned", ephemeral=True)
 
 
@@ -99,7 +108,7 @@ async def log(
         nothing_found = False
 
     for note in data.get_notes(ctx.guild_id):
-        if note['user'] == name.id:
+        if note['user']['id'] == name.id:
             icon = ""
             if "warning" in note:
                 icon = "⚠ "

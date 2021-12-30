@@ -45,4 +45,4 @@ class ScrimbotData:
         return self.data[guild][key]
 
     def warnings(self, guild, member):
-        return [d for d in self.get_notes(guild) if 'warning' in d and d['user'] == member]
+        return [d for d in self.get_notes(guild) if 'warning' in d and d['user']['id'] == member]
