@@ -21,7 +21,7 @@ mixeds = []
 
 bot.initialised = False
 
-enabled_guilds = [908282497769558036]
+enabled_guilds = data.guilds
 
 
 def remove_mixed(m: Mixed):

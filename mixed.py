@@ -2,7 +2,6 @@ import asyncio
 import math
 from datetime import datetime, timedelta
 
-import discord
 import pytz
 from discord import Bot, Member
 
