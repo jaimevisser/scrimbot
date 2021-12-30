@@ -67,6 +67,21 @@ async def on_ready():
 
 
 @bot.slash_command(guild_ids=enabled_guilds)
+async def report(
+        ctx,
+        name: Option(SlashCommandOptionType.user, "User to report"),
+        text: Option(str, "Tell us what you want to report")
+):
+    """Send a message to the moderators"""
+    modchannel = await bot.fetch_channel(data.config[str(ctx.guild_id)]["modchannel"])
+
+    await modchannel.send(f"{ctx.author.mention} would like to report {name.mention} "
+                          f"in {ctx.channel.mention} for the following:\n{text}")
+    await ctx.respond("Report sent", ephemeral=True)
+
+
+
+@bot.slash_command(guild_ids=enabled_guilds)
 @is_mod()
 async def note(
         ctx,
@@ -119,7 +134,7 @@ async def warn(
 async def rmlog(
         ctx,
         name: Option(SlashCommandOptionType.user, "User to make a note for"),
-        id: Option(str, "ID of the note/warning to remove")
+        id: Option(str, "ID of the note/warning to remove, 12 character gibberish in square brackets [] in the log")
 ):
     """Remove a single warning/note from a user"""
     toremove = None
