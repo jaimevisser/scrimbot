@@ -1,6 +1,7 @@
 import logging
 import math
 import re
+import uuid
 from datetime import datetime, timezone, timedelta
 from typing import Callable
 
@@ -78,10 +79,11 @@ async def note(
     modchannel = await bot.fetch_channel(data.config[str(ctx.guild_id)]["modchannel"])
 
     data.get_notes(ctx.guild_id).append({
-        "user": discutils.user_dict(name),
+        "id": uuid.uuid4().hex[0:12],
+        "user": name.id,
         "time": datetime.now(timezone.utc).timestamp(),
         "text": text,
-        "author": discutils.user_dict(ctx.author)})
+        "author": ctx.author.id})
     data.sync()
     await modchannel.send(f"User {name.mention} has had a note added by {ctx.author.mention}: {text}")
     await ctx.respond("Note added", ephemeral=True)
@@ -98,10 +100,11 @@ async def warn(
     modchannel = await bot.fetch_channel(data.config[str(ctx.guild_id)]["modchannel"])
 
     data.get_notes(ctx.guild_id).append({
-        "user": discutils.user_dict(name),
+        "id": uuid.uuid4().hex[0:12],
+        "user": name.id,
         "time": datetime.now(timezone.utc).timestamp(),
         "text": text,
-        "author": discutils.user_dict(ctx.author),
+        "author": ctx.author.id,
         "warning": True})
     data.sync()
     all_warns = data.warnings(ctx.guild_id, name.id)
@@ -130,11 +133,13 @@ async def log(
         nothing_found = False
 
     for note in data.get_notes(ctx.guild_id):
-        if note['user']['id'] == name.id:
+        if note['user'] == name.id:
+            author = await ctx.guild.fetch_member(note['author'])
+
             icon = ""
             if "warning" in note:
                 icon = "⚠ "
-            new = f"<t:{math.floor(note['time'])}:d> {icon}: {note['text']}"
+            new = f"[{note['id']}] <t:{math.floor(note['time'])}:d> {author} {icon}: {note['text']}"
 
             if len(output) + len(new) > 1800:
                 await parse()
