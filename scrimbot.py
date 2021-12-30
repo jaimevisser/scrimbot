@@ -2,11 +2,14 @@ import logging
 import math
 import re
 from datetime import datetime, timezone, timedelta
+from typing import Callable
 
 import discord
 import pytz
+from discord import Member
 from discord.enums import SlashCommandOptionType, ChannelType
 from discord.commands import Option
+from discord.commands.permissions import Permission
 
 import discutils
 from data import ScrimbotData
@@ -35,6 +38,22 @@ async def create_mixed(guild, mixed_data: dict):
     return await Mixed.create(bot, guild, mixed_data, data.sync, remove_mixed)
 
 
+def is_mod():
+    """a decorator to add moderator role permissions to slash commands"""
+
+    def decorator(func: Callable):
+        # Create __app_cmd_perms__
+        if not hasattr(func, '__app_cmd_perms__'):
+            func.__app_cmd_perms__ = []
+
+        for guild in data.guilds:
+            func.__app_cmd_perms__.append(Permission(int(data.config[str(guild)]["modrole"]), 1, True, guild))
+
+        return func
+
+    return decorator
+
+
 @bot.event
 async def on_ready():
     if not bot.initialised:
@@ -48,6 +67,7 @@ async def on_ready():
 
 
 @bot.slash_command(guild_ids=enabled_guilds)
+@is_mod()
 async def note(
         ctx,
         name: Option(SlashCommandOptionType.user, "User to make a note for"),
@@ -68,6 +88,7 @@ async def note(
 
 
 @bot.slash_command(guild_ids=enabled_guilds)
+@is_mod()
 async def warn(
         ctx,
         name: Option(SlashCommandOptionType.user, "User to make a note for"),
@@ -92,6 +113,7 @@ async def warn(
 
 
 @bot.slash_command(guild_ids=enabled_guilds)
+@is_mod()
 async def log(
         ctx,
         name: Option(SlashCommandOptionType.user, "User to make a note for")
