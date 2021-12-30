@@ -184,6 +184,13 @@ class Mixed:
         if await self.num_players() == 0:
             await self.__thread.edit(archived=True)
 
+        archivetime = self.time + timedelta(hours=2, minutes=5)
+        if archivetime > datetime.now(tzuk):
+            seconds = math.floor((archivetime - datetime.now(tzuk)).total_seconds())
+            await asyncio.sleep(seconds)
+
+        await self.update()
+
     async def __generate_start_message(self):
         if await self.num_players() == 0:
             return "Sad moment, nobody signed up! Archiving the thread."
