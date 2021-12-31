@@ -267,6 +267,7 @@ async def scrim(
     message = await thread.send(f"Scrim at {discutils.timestamp(mixedtime)}")
     mixedobj["message"] = message.id
     mixedobj["role"] = scrimmer_role
+    mixedobj["creator"] = ctx.author.id
     data.get_mixeds(ctx.guild_id).append(mixedobj)
     data.sync()
 

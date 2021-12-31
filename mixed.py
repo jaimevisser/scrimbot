@@ -36,7 +36,9 @@ class Mixed:
     async def __init(self):
         self.__thread = await self.__bot.fetch_channel(self.id)
         self.__message = await self.__thread.fetch_message(self.data["message"])
-        self.__role = (await self.__bot.fetch_guild(int(self.guild))).get_role(self.data["role"])
+        self.__guild = await self.__bot.fetch_guild(int(self.guild))
+        self.__role = self.__guild.get_role(self.data["role"])
+        self.__creator = await self.__guild.fetch_member(self.data["creator"])
 
         self.__bot.loop.create_task(self.__start_mixed())
 
@@ -76,7 +78,8 @@ class Mixed:
         return len(self.data["reserve"])
 
     async def __generate_message(self):
-        message = f"{self.__role.mention}! Scrim at {discutils.timestamp(self.time)}\n"
+        message = f"{self.__role.mention}! Scrim at {discutils.timestamp(self.time)} " \
+                  f"started by {self.__creator.mention}\n"
         if await self.num_players() > 0:
             players = await self.num_players()
             maxplayers = self.__size
