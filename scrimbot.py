@@ -7,6 +7,7 @@ from typing import Callable
 
 import discord
 import pytz
+from discord import ApplicationCommandInvokeError, HTTPException
 from discord.commands import Option
 from discord.commands.permissions import Permission
 from discord.enums import SlashCommandOptionType, ChannelType
@@ -80,7 +81,6 @@ async def report(
     await ctx.respond("Report sent", ephemeral=True)
 
 
-
 @bot.slash_command(guild_ids=enabled_guilds)
 @is_mod()
 async def note(
@@ -122,11 +122,17 @@ async def warn(
         "warning": True})
     data.sync()
     all_warns = data.warnings(ctx.guild_id, name.id)
-    await name.send(f"You have been warned by {ctx.author.mention}: {text}\n"
+
+    message = "User warned"
+    try:
+        await name.send(f"You have been warned by {ctx.author.mention}: {text}\n"
                     f"Your warning count is now at {len(all_warns)}")
+    except HTTPException:
+        message = "Warning logged but couldn't send the user the warning"
+
     await modchannel.send(f"User {name.mention} has been warned by {ctx.author.mention}: {text}\n"
                           f"Their warning count is now at {len(all_warns)}")
-    await ctx.respond("User warned", ephemeral=True)
+    await ctx.respond(message, ephemeral=True)
 
 
 @bot.slash_command(guild_ids=enabled_guilds)
@@ -134,7 +140,7 @@ async def warn(
 async def rmlog(
         ctx,
         name: Option(SlashCommandOptionType.user, "User to make a note for"),
-        id: Option(str, "ID of the note/warning to remove, 12 character gibberish in square brackets [] in the log")
+        id: Option(str, "ID of the note/warning to remove, it's the gibberish in square brackets [] in the log")
 ):
     """Remove a single warning/note from a user"""
     toremove = None
