@@ -224,6 +224,11 @@ class Mixed:
             message += f"Reserves, feel free to join in.\n" \
                        f"{reserves}"
 
+        shortage = self.__size - numplayers + numreserves
+        if shortage <= 2:
+            message += f"\n{self.__role.mention}, you might be able to make this a full mixed.\n" \
+                       f"We need at least {shortage} player(s)."
+
         return message
 
     @classmethod
