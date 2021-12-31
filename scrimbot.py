@@ -126,7 +126,7 @@ async def warn(
     message = "User warned"
     try:
         await name.send(f"You have been warned by {ctx.author.mention}: {text}\n"
-                    f"Your warning count is now at {len(all_warns)}")
+                        f"Your warning count is now at {len(all_warns)}")
     except HTTPException:
         message = "Warning logged but couldn't send the user the warning"
 
@@ -157,6 +157,33 @@ async def rmlog(
         await ctx.respond("Note/warn removed", ephemeral=True)
     else:
         await ctx.respond("No matching note/warn found", ephemeral=True)
+
+
+@bot.slash_command(guild_ids=enabled_guilds)
+@is_mod()
+async def purgelog(
+        ctx,
+        name: Option(SlashCommandOptionType.user, "User to make a note for")
+):
+    """Remove everything in the log for a user"""
+    modchannel = await bot.fetch_channel(data.config[str(ctx.guild_id)]["modchannel"])
+    toremove = []
+
+    guildnotes = data.get_notes(ctx.guild_id)
+
+    for note in guildnotes:
+        if note['user'] == name.id:
+            toremove.append(note)
+
+    if len(toremove) > 0:
+        for note in toremove:
+            guildnotes.remove(note)
+        data.sync()
+        await ctx.respond("Matching entries removed", ephemeral=True)
+
+        await modchannel.send(f"{ctx.author.mention} purged the log of {name.mention}.")
+    else:
+        await ctx.respond("No matching entries found", ephemeral=True)
 
 
 @bot.slash_command(guild_ids=enabled_guilds)
