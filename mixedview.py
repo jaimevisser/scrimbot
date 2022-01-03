@@ -40,15 +40,15 @@ class MixedView(discord.ui.View):
         self.add_item(self.__button_leave)
 
     async def join(self, interaction: discord.Interaction):
-        await self.__mixed.join(interaction.user)
-        await interaction.response.send_message("Added you to the mixed.", ephemeral=True)
+        response = await self.__mixed.join(interaction.user)
+        await interaction.response.send_message(response, ephemeral=True)
 
     async def reserve(self, interaction: discord.Interaction):
-        await self.__mixed.reserve(interaction.user)
-        await interaction.response.send_message("Put you on the reserve list.", ephemeral=True)
+        response = await self.__mixed.reserve(interaction.user)
+        await interaction.response.send_message(response, ephemeral=True)
 
     async def leave(self, interaction: discord.Interaction):
-        await self.__mixed.leave(interaction.user)
+        response  = await self.__mixed.leave(interaction.user)
         await interaction.response.send_message("Removed you from the mixed.", ephemeral=True)
 
 
@@ -66,5 +66,5 @@ class MixedRunningView(discord.ui.View):
         self.add_item(self.__button_call_reserve)
 
     async def call_reserve(self, interaction: discord.Interaction):
-        callout = await self.__mixed.call_reserve()
-        await interaction.response.send_message(callout)
+        response = await self.__mixed.call_reserve()
+        await interaction.response.send_message(response)

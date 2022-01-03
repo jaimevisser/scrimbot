@@ -6,6 +6,7 @@ import pytz
 from discord import Bot, Member
 
 import discutils
+from data import ScrimbotData
 from mixedview import MixedView, MixedRunningView
 
 tzuk = pytz.timezone("Europe/London")
@@ -13,10 +14,11 @@ tzuk = pytz.timezone("Europe/London")
 
 class Mixed:
 
-    def __init__(self, bot: Bot, guild, data: dict, sync, remove):
+    def __init__(self, bot: Bot, guild, data: dict, alldata: ScrimbotData, sync, remove):
         self.guild = str(guild)
         self.__sync = sync
         self.data = data
+        self.__alldata = alldata
         self.__bot = bot
         self.__size = 8
         self.__remove = remove
@@ -105,25 +107,41 @@ class Mixed:
 
         return f"{time} {players}"
 
-    async def join(self, user: Member):
-        self.__remove_reserve(user.id)
+    async def join(self, user: Member) -> str:
+        if self.is_on_timeout(user):
+            return "Sorry buddy, you are on a timeout!"
 
+        await self.__thread.add_user(user)
         if await self.num_players() < self.__size:
-            await self.__thread.add_user(user)
-
             if not any(u["id"] == user.id for u in self.data["players"]):
                 self.data["players"].append(discutils.user_dict(user))
                 self.__sync()
+                self.__remove_reserve(user.id)
                 await self.update()
+                return "Added you to the mixed."
+            else:
+                return "Whoops, you are already in there!"
+        else:
+            return "It's full, sorry!"
 
-    async def reserve(self, user: Member):
-        self.__remove_player(user.id)
+    async def reserve(self, user: Member) -> str:
+        if self.is_on_timeout(user):
+            return "Sorry buddy, you are on a timeout!"
 
         await self.__thread.add_user(user)
         if not any(u["id"] == user.id for u in self.data["reserve"]):
             self.data["reserve"].append(discutils.user_dict(user))
             self.__sync()
+            self.__remove_player(user.id)
             await self.update()
+            return "Put you on the reserve list."
+        else:
+            return "Whoops, you are already in there!"
+
+    def is_on_timeout(self, user: Member):
+        if discutils.has_role(user, self.__alldata.config[self.guild]["timeoutrole"]):
+            return True
+        return False
 
     async def leave(self, user: Member):
         self.__remove_player(user.id)
@@ -235,7 +253,7 @@ class Mixed:
         return message
 
     @classmethod
-    async def create(cls, bot: Bot, guild, data: dict, sync, remove):
-        mixed = Mixed(bot, guild, data, sync, remove)
+    async def create(cls, bot: Bot, guild, data: dict, alldata: ScrimbotData, sync, remove):
+        mixed = Mixed(bot, guild, data, alldata, sync, remove)
         await mixed.__init()
         return mixed

@@ -7,7 +7,7 @@ from typing import Callable
 
 import discord
 import pytz
-from discord import ApplicationCommandInvokeError, HTTPException
+from discord import HTTPException
 from discord.commands import Option
 from discord.commands.permissions import Permission
 from discord.enums import SlashCommandOptionType, ChannelType
@@ -36,7 +36,7 @@ def remove_mixed(m: Mixed):
 
 
 async def create_mixed(guild: int, mixed_data: dict):
-    return await Mixed.create(bot, guild, mixed_data, data.sync, remove_mixed)
+    return await Mixed.create(bot, guild, mixed_data, data, data.sync, remove_mixed)
 
 
 def is_mod():
@@ -231,6 +231,10 @@ async def scrim(
         time: Option(str, "Time (UK timezone) when the scrim will start, format must be 14:00")
 ):
     """Start a scrim in this channel."""
+    if discutils.has_role(ctx.author, data.config[str(ctx.guild_id)]["timeoutrole"]):
+        await ctx.respond("Sorry buddy, you are on a timeout!", ephemeral=True)
+        return
+
     match = re.match("([0-9]{1,2}):?([0-9]{2})", str(time))
 
     mixedobj = {"players": [], "reserves": []}
