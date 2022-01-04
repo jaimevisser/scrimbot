@@ -92,7 +92,7 @@ async def note(
 
     modchannel = await bot.fetch_channel(data.config[str(ctx.guild_id)]["modchannel"])
 
-    data.get_notes(ctx.guild_id).append({
+    data.get_log(ctx.guild_id).append({
         "id": uuid.uuid4().hex[0:12],
         "user": name.id,
         "time": datetime.now(timezone.utc).timestamp(),
@@ -113,7 +113,7 @@ async def warn(
     """Warn a user. A DM will be sent to the user as well."""
     modchannel = await bot.fetch_channel(data.config[str(ctx.guild_id)]["modchannel"])
 
-    data.get_notes(ctx.guild_id).append({
+    data.get_log(ctx.guild_id).append({
         "id": uuid.uuid4().hex[0:12],
         "user": name.id,
         "time": datetime.now(timezone.utc).timestamp(),
@@ -145,7 +145,7 @@ async def rmlog(
     """Remove a single warning/note from a user"""
     toremove = None
 
-    guildnotes = data.get_notes(ctx.guild_id)
+    guildnotes = data.get_log(ctx.guild_id)
 
     for note in guildnotes:
         if note['user'] == name.id and note["id"] == id:
@@ -169,7 +169,7 @@ async def purgelog(
     modchannel = await bot.fetch_channel(data.config[str(ctx.guild_id)]["modchannel"])
     toremove = []
 
-    guildnotes = data.get_notes(ctx.guild_id)
+    guildnotes = data.get_log(ctx.guild_id)
 
     for note in guildnotes:
         if note['user'] == name.id:
@@ -203,7 +203,7 @@ async def log(
         await ctx.respond(output)
         nothing_found = False
 
-    for note in data.get_notes(ctx.guild_id):
+    for note in data.get_log(ctx.guild_id):
         if note['user'] == name.id:
             author = await ctx.guild.fetch_member(note['author'])
 

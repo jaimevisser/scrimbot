@@ -30,8 +30,8 @@ class ScrimbotData:
         with open('data/data.json', 'w') as jsonfile:
             json.dump(self.data, jsonfile)
 
-    def get_notes(self, guild) -> list:
-        return self.__getlist(guild, "notes")
+    def get_log(self, guild) -> list:
+        return self.__getlist(guild, "log")
 
     def get_mixeds(self, guild) -> list:
         return self.__getlist(guild, "mixeds")
@@ -45,4 +45,4 @@ class ScrimbotData:
         return self.data[guild][key]
 
     def warnings(self, guild, member):
-        return [d for d in self.get_notes(guild) if 'warning' in d and d['user'] == member]
+        return [d for d in self.get_log(guild) if 'warning' in d and d['user'] == member]
