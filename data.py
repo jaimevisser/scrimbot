@@ -43,6 +43,3 @@ class ScrimbotData:
         if key not in self.data[guild]:
             self.data[guild][key] = []
         return self.data[guild][key]
-
-    def warnings(self, guild, member):
-        return [d for d in self.get_log(guild) if 'warning' in d and d['user'] == member]

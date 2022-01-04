@@ -1,7 +1,6 @@
 import logging
 import math
 import re
-import uuid
 from datetime import datetime, timezone, timedelta
 from typing import Callable
 
@@ -14,12 +13,14 @@ from discord.enums import SlashCommandOptionType, ChannelType
 
 import discutils
 from data import ScrimbotData
+from log import Log
 from mixed import Mixed
 
 logging.basicConfig(level=logging.DEBUG)
 
 bot = discord.Bot()
 data = ScrimbotData()
+bot_log = Log(data.get_log, data.sync)
 
 mixeds = []
 
@@ -91,14 +92,7 @@ async def note(
     """Make a note in a users' log."""
 
     modchannel = await bot.fetch_channel(data.config[str(ctx.guild_id)]["modchannel"])
-
-    data.get_log(ctx.guild_id).append({
-        "id": uuid.uuid4().hex[0:12],
-        "user": name.id,
-        "time": datetime.now(timezone.utc).timestamp(),
-        "text": text,
-        "author": ctx.author.id})
-    data.sync()
+    bot_log.add_note(ctx.guild_id, name.id, ctx.author.id, text)
     await modchannel.send(f"User {name.mention} has had a note added by {ctx.author.mention}: {text}")
     await ctx.respond("Note added", ephemeral=True)
 
@@ -111,27 +105,19 @@ async def warn(
         text: Option(str, "Warning")
 ):
     """Warn a user. A DM will be sent to the user as well."""
+
     modchannel = await bot.fetch_channel(data.config[str(ctx.guild_id)]["modchannel"])
-
-    data.get_log(ctx.guild_id).append({
-        "id": uuid.uuid4().hex[0:12],
-        "user": name.id,
-        "time": datetime.now(timezone.utc).timestamp(),
-        "text": text,
-        "author": ctx.author.id,
-        "warning": True})
-    data.sync()
-    all_warns = data.warnings(ctx.guild_id, name.id)
-
+    bot_log.add_warning(ctx.guild_id, name.id, ctx.author.id, text)
+    warn_count = bot_log.warning_count(ctx.guild_id, name.id)
     message = "User warned"
     try:
         await name.send(f"You have been warned by {ctx.author.mention}: {text}\n"
-                        f"Your warning count is now at {len(all_warns)}")
+                        f"Your warning count is now at {warn_count}")
     except HTTPException:
         message = "Warning logged but couldn't send the user the warning"
 
     await modchannel.send(f"User {name.mention} has been warned by {ctx.author.mention}: {text}\n"
-                          f"Their warning count is now at {len(all_warns)}")
+                          f"Their warning count is now at {warn_count}")
     await ctx.respond(message, ephemeral=True)
 
 
@@ -139,49 +125,31 @@ async def warn(
 @is_mod()
 async def rmlog(
         ctx,
-        name: Option(SlashCommandOptionType.user, "User to make a note for"),
-        id: Option(str, "ID of the note/warning to remove, it's the gibberish in square brackets [] in the log")
+        id: Option(str, "ID of the entry to remove, it's the gibberish in square brackets [] in the log")
 ):
-    """Remove a single warning/note from a user"""
-    toremove = None
+    """Remove a single log entry from a user"""
 
-    guildnotes = data.get_log(ctx.guild_id)
+    num_removed = bot_log.remove(ctx.guild_id, predicate=lambda entry: entry["id"] == id)
 
-    for note in guildnotes:
-        if note['user'] == name.id and note["id"] == id:
-            toremove = note
-
-    if toremove is not None:
-        guildnotes.remove(toremove)
-        data.sync()
-        await ctx.respond("Note/warn removed", ephemeral=True)
+    if num_removed > 0:
+        await ctx.respond("Entry removed", ephemeral=True)
     else:
-        await ctx.respond("No matching note/warn found", ephemeral=True)
+        await ctx.respond("No matching entries found", ephemeral=True)
 
 
 @bot.slash_command(guild_ids=enabled_guilds)
 @is_mod()
 async def purgelog(
         ctx,
-        name: Option(SlashCommandOptionType.user, "User to make a note for")
+        name: Option(SlashCommandOptionType.user, "User to clear the log for")
 ):
     """Remove everything in the log for a user"""
     modchannel = await bot.fetch_channel(data.config[str(ctx.guild_id)]["modchannel"])
-    toremove = []
+    num_removed = bot_log.remove(ctx.guild_id, predicate=lambda entry: entry["user"] == name.id)
 
-    guildnotes = data.get_log(ctx.guild_id)
-
-    for note in guildnotes:
-        if note['user'] == name.id:
-            toremove.append(note)
-
-    if len(toremove) > 0:
-        for note in toremove:
-            guildnotes.remove(note)
-        data.sync()
-        await ctx.respond("Matching entries removed", ephemeral=True)
-
+    if num_removed > 0:
         await modchannel.send(f"{ctx.author.mention} purged the log of {name.mention}.")
+        await ctx.respond("Matching entries removed", ephemeral=True)
     else:
         await ctx.respond("No matching entries found", ephemeral=True)
 
@@ -190,7 +158,7 @@ async def purgelog(
 @is_mod()
 async def log(
         ctx,
-        name: Option(SlashCommandOptionType.user, "User to make a note for")
+        name: Option(SlashCommandOptionType.user, "User to display the log for")
 ):
     """Display the log of a user, will print the log in the current channel."""
     nothing_found = True
@@ -203,14 +171,14 @@ async def log(
         await ctx.respond(output)
         nothing_found = False
 
-    for note in data.get_log(ctx.guild_id):
-        if note['user'] == name.id:
-            author = await ctx.guild.fetch_member(note['author'])
+    for logentry in data.get_log(ctx.guild_id):
+        if logentry['user'] == name.id:
+            author = await ctx.guild.fetch_member(logentry['author'])
 
             icon = ""
-            if "warning" in note:
+            if "type" in logentry and logentry["type"] == "warning":
                 icon = "⚠ "
-            new = f"[{note['id']}] <t:{math.floor(note['time'])}:d> {author} {icon}: {note['text']}"
+            new = f"[{logentry['id']}] <t:{math.floor(logentry['time'])}:d> {author} {icon}: {logentry['text']}"
 
             if len(output) + len(new) > 1800:
                 await parse()
