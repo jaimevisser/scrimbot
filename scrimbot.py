@@ -1,7 +1,7 @@
 import logging
 import math
 import re
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta
 from typing import Callable
 
 import discord
@@ -161,36 +161,22 @@ async def log(
         name: Option(SlashCommandOptionType.user, "User to display the log for")
 ):
     """Display the log of a user, will print the log in the current channel."""
-    nothing_found = True
-    output = ""
 
-    async def parse():
-        nonlocal output, nothing_found
-        if nothing_found:
-            output = f"**Log for {name}**" + output
-        await ctx.respond(output)
-        nothing_found = False
+    entries = bot_log.print_log(ctx.guild_id, name.id, Log.ALL)
 
-    for logentry in data.get_log(ctx.guild_id):
-        if logentry['user'] == name.id:
-            author = await ctx.guild.fetch_member(logentry['author'])
-
-            icon = ""
-            if "type" in logentry and logentry["type"] == "warning":
-                icon = "⚠ "
-            new = f"[{logentry['id']}] <t:{math.floor(logentry['time'])}:d> {author} {icon}: {logentry['text']}"
-
-            if len(output) + len(new) > 1800:
-                await parse()
-                output = ""
-
-            output += "\n" + new
-
-    if len(output) > 0:
-        await parse()
-
-    if nothing_found:
+    if len(entries) == 0:
         await ctx.respond(f"Nothing in the log for {name}")
+        return
+
+    output = f"**Log for {name}**"
+
+    for entry in entries:
+        if len(output + entry) > 1800:
+            await ctx.respond(output)
+            output = entry
+        else:
+            output += "\n" + entry
+    await ctx.respond(output)
 
 
 @bot.slash_command(guild_ids=enabled_guilds)
