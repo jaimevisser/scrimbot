@@ -42,7 +42,7 @@ class Log:
             self.__sync()
         return len(to_remove)
 
-    def print_log(self, guild: str, user: int, types=None) -> list:
+    def print_log(self, guild: str, user: int, types=None, authors=False) -> list:
         all_guild_entries = self.__get_log(guild)
 
         if types is None:
@@ -53,10 +53,11 @@ class Log:
 
         for entry in entries:
             start = f"[{entry['id']}] <t:{math.floor(entry['time'])}:d>"
+            author = f" by <@{entry['author']}>" if authors else ""
             if entry["type"] == "note" and entry["user"] == user:
-                print.append(f"{start} note by <@{entry['author']}>: {entry['text']}")
+                print.append(f"{start} note{author}: {entry['text']}")
             elif entry["type"] == "warning" and entry["user"] == user:
-                print.append(f"{start} ⚠ got warned by <@{entry['author']}>: {entry['text']}")
+                print.append(f"{start} ⚠ got warned{author}: {entry['text']}")
             elif entry["type"] == "warning" and entry["author"] == user:
                 print.append(f"{start} warned <@{entry['user']}>: {entry['text']}")
 

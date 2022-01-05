@@ -161,8 +161,14 @@ async def log(
         name: Option(SlashCommandOptionType.user, "User to display the log for")
 ):
     """Display the log of a user, will print the log in the current channel."""
+    types = None
+    authors = False
 
-    entries = bot_log.print_log(ctx.guild_id, name.id, Log.ALL)
+    if ctx.channel.id == data.config[str(ctx.guild_id)]["modchannel"]:
+        types = Log.ALL
+        authors = True
+
+    entries = bot_log.print_log(ctx.guild_id, name.id, types = types, authors = authors)
 
     if len(entries) == 0:
         await ctx.respond(f"Nothing in the log for {name}")
