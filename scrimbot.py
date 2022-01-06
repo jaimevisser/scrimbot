@@ -75,8 +75,12 @@ async def report(
         text: Option(str, "Tell us what you want to report")
 ):
     """Send a message to the moderators"""
-    modchannel = await bot.fetch_channel(data.config[str(ctx.guild_id)]["modchannel"])
+    if bot_log.daily_report_count(str(ctx.guild_id), ctx.author.id) > data.config[str(ctx.guild_id)]["reportsperday"]:
+        await ctx.respond("You've sent too many reports in the past 24 hours, please wait a bit", ephemeral=True)
+        return
 
+    modchannel = await bot.fetch_channel(data.config[str(ctx.guild_id)]["modchannel"])
+    bot_log.add_report(ctx.guild_id, ctx.channel.id, name.id, ctx.author.id, text)
     await modchannel.send(f"{ctx.author.mention} would like to report {name.mention} "
                           f"in {ctx.channel.mention} for the following:\n{text}")
     await ctx.respond("Report sent", ephemeral=True)
@@ -168,7 +172,7 @@ async def log(
         types = Log.ALL
         authors = True
 
-    entries = bot_log.print_log(ctx.guild_id, name.id, types = types, authors = authors)
+    entries = bot_log.print_log(ctx.guild_id, name.id, types=types, authors=authors)
 
     if len(entries) == 0:
         await ctx.respond(f"Nothing in the log for {name}")

@@ -1,11 +1,10 @@
 import math
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Callable
 
 
 class Log:
-    ALL = ["warning", "note"]
 
     def __init__(self, get_log: Callable, sync: Callable):
         self.__get_log = get_log
@@ -17,18 +16,30 @@ class Log:
     def add_warning(self, guild: str, user: int, author: int, text: str):
         self.__add_entry("warning", guild, user, author, text)
 
-    def __add_entry(self, type: str, guild: str, user: int, author: int, text: str):
-        self.__get_log(guild).append({
+    def add_report(self, guild: str, channel: int, user: int, author: int, text: str):
+        self.__add_entry("report", guild, user, author, text, channel=channel)
+
+    def __add_entry(self, type: str, guild: str, user: int, author: int, text: str, **kwargs):
+        entry = {
             "id": uuid.uuid4().hex[0:16],
             "user": user,
             "time": datetime.now(timezone.utc).timestamp(),
             "text": text,
             "author": author,
-            "type": type})
+            "type": type}
+        entry.update(kwargs)
+
+        self.__get_log(guild).append(entry)
         self.__sync()
 
     def warning_count(self, guild: str, user: int) -> int:
         return len([d for d in self.__get_log(guild) if d['type'] == "warning" and d['user'] == user])
+
+    def daily_report_count(self, guild: str, user: int) -> int:
+        start_time = (datetime.now(timezone.utc) - timedelta(days=1)).timestamp()
+
+        return len([d for d in self.__get_log(guild)
+                    if d['type'] == "report" and d['author'] == user and d['time'] > start_time])
 
     def remove(self, guild: str, predicate) -> int:
 
@@ -41,6 +52,8 @@ class Log:
                 all_guild_entries.remove(logentry)
             self.__sync()
         return len(to_remove)
+
+    ALL = ["warning", "note", "report"]
 
     def print_log(self, guild: str, user: int, types=None, authors=False) -> list:
         all_guild_entries = self.__get_log(guild)
@@ -60,5 +73,9 @@ class Log:
                 print.append(f"{start} ⚠ got warned{author}: {entry['text']}")
             elif entry["type"] == "warning" and entry["author"] == user:
                 print.append(f"{start} warned <@{entry['user']}>: {entry['text']}")
+            elif entry["type"] == "report" and entry["user"] == user:
+                print.append(f"{start} ⚠ got reported{author} in <#{entry['channel']}>: {entry['text']}")
+            elif entry["type"] == "report" and entry["author"] == user:
+                print.append(f"{start} reported <@{entry['user']}> in <#{entry['channel']}>: {entry['text']}")
 
         return print
