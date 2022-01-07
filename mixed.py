@@ -187,6 +187,17 @@ class Mixed:
         if player:
             self.data[playerlist].remove(player)
 
+    def contains_player(self, user: int) -> bool:
+        for x in self.data["players"]:
+            if x["id"] == user:
+                return True
+
+        for x in self.data["reserve"]:
+            if x["id"] == user:
+                return True
+
+        return False
+
     async def __start_mixed(self):
         if "started" in self.data:
             return

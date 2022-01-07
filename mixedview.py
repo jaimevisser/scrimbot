@@ -48,7 +48,7 @@ class MixedView(discord.ui.View):
         await interaction.response.send_message(response, ephemeral=True)
 
     async def leave(self, interaction: discord.Interaction):
-        response  = await self.__mixed.leave(interaction.user)
+        await self.__mixed.leave(interaction.user)
         await interaction.response.send_message("Removed you from the mixed.", ephemeral=True)
 
 
@@ -66,5 +66,9 @@ class MixedRunningView(discord.ui.View):
         self.add_item(self.__button_call_reserve)
 
     async def call_reserve(self, interaction: discord.Interaction):
+        if not self.__mixed.contains_player(interaction.user.id):
+            await interaction.response.send_message("You aren't in the scrim, buddy", ephemeral=True)
+            return
+
         response = await self.__mixed.call_reserve()
         await interaction.response.send_message(response)
