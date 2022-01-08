@@ -20,7 +20,7 @@ class Mixed:
         self.data = data
         self.__alldata = alldata
         self.__bot = bot
-        self.__size = 8
+        self.__size = 1
         self.__remove = remove
 
         self.id = data["thread"]
@@ -93,10 +93,12 @@ class Mixed:
             reserves = await self.num_reserves()
             message += f"\n**Reserves ({reserves})**\n"
             for player in self.data["reserve"]:
-                called = ""
+                extra = ""
+                if "auto" in player and "started" not in self.data:
+                    extra = "(auto-join)"
                 if "called" in player:
-                    called = "(called)"
-                message += f"- {player['mention']} {called}\n"
+                    extra = "(called)"
+                message += f"- {player['mention']} {extra}\n"
 
         return message
 
@@ -122,7 +124,11 @@ class Mixed:
             else:
                 return "Whoops, you are already in there!"
         else:
-            return "It's full, sorry!"
+            await self.reserve(user)
+            self.__set_auto_join(user)
+            await self.update()
+            return "It's full, sorry! I put you on the reserve on auto-join, if a spot opens up the first reserve on " \
+                   "auto-join will get it. "
 
     async def reserve(self, user: Member) -> str:
         if self.is_on_timeout(user):
@@ -132,11 +138,23 @@ class Mixed:
         if not any(u["id"] == user.id for u in self.data["reserve"]):
             self.data["reserve"].append(discutils.user_dict(user))
             self.__sync()
-            self.__remove_player(user.id)
+            await self.__remove_player(user.id)
             await self.update()
             return "Put you on the reserve list."
         else:
-            return "Whoops, you are already in there!"
+            self.__set_auto_join(user, False)
+            await self.update()
+            return "You are already a reserve, turned off auto-join if it was on."
+
+    def __set_auto_join(self, user:Member, auto=True):
+        for player in self.data["reserve"]:
+            if player["id"] == user.id:
+                if auto:
+                    player["auto"] = True
+                elif "auto" in player:
+                    del player["auto"]
+                self.__sync()
+                break
 
     def is_on_timeout(self, user: Member):
         if discutils.has_role(user, self.__alldata.config[self.guild]["timeoutrole"]):
@@ -144,7 +162,7 @@ class Mixed:
         return False
 
     async def leave(self, user: Member):
-        self.__remove_player(user.id)
+        await self.__remove_player(user.id)
         self.__remove_reserve(user.id)
 
         self.__sync()
@@ -167,8 +185,23 @@ class Mixed:
                 return r
         return None
 
-    def __remove_player(self, player_id):
+    async def __remove_player(self, player_id):
         self.__remove_from_playerlist("players", player_id)
+        if await self.num_players() < self.__size:
+            auto = None
+            for r in self.data["reserve"]:
+                if "auto" in r:
+                    auto = r
+                    break
+
+            if auto is not None:
+                self.data["reserve"].remove(auto)
+                if "auto" in auto:
+                    del auto["auto"]
+                self.data["players"].append(auto)
+                self.__sync()
+                await self.update()
+
 
     def __remove_reserve(self, player_id):
         self.__remove_from_playerlist("reserve", player_id)
