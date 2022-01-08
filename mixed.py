@@ -20,7 +20,7 @@ class Mixed:
         self.data = data
         self.__alldata = alldata
         self.__bot = bot
-        self.__size = 1
+        self.__size = 8
         self.__remove = remove
 
         self.id = data["thread"]
