@@ -128,7 +128,7 @@ class Mixed:
             self.__set_auto_join(user)
             await self.update()
             return "It's full, sorry! I put you on the reserve on auto-join, if a spot opens up the first reserve on " \
-                   "auto-join will get it. "
+                   "auto-join will get it. If you don't want auto-join just press the reserve button."
 
     async def reserve(self, user: Member) -> str:
         if self.is_on_timeout(user):
@@ -146,7 +146,7 @@ class Mixed:
             await self.update()
             return "You are already a reserve, turned off auto-join if it was on."
 
-    def __set_auto_join(self, user:Member, auto=True):
+    def __set_auto_join(self, user: Member, auto=True):
         for player in self.data["reserve"]:
             if player["id"] == user.id:
                 if auto:
@@ -170,14 +170,16 @@ class Mixed:
 
     async def call_reserve(self):
         callout = "No reserve available"
+        ephemeral = True
 
         reserve = self.__get_next_reserve()
         if reserve is not None:
             reserve["called"] = True
             callout = f"{reserve['mention']} you are needed! Get online if you can!"
+            ephemeral = False
             self.__sync()
         await self.update()
-        return callout
+        return callout, ephemeral
 
     def __get_next_reserve(self):
         for r in self.data["reserve"]:
@@ -201,7 +203,6 @@ class Mixed:
                 self.data["players"].append(auto)
                 self.__sync()
                 await self.update()
-
 
     def __remove_reserve(self, player_id):
         self.__remove_from_playerlist("reserve", player_id)

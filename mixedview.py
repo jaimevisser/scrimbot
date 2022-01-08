@@ -70,5 +70,5 @@ class MixedRunningView(discord.ui.View):
             await interaction.response.send_message("You aren't in the scrim, buddy", ephemeral=True)
             return
 
-        response = await self.__mixed.call_reserve()
-        await interaction.response.send_message(response)
+        response, ephemeral = await self.__mixed.call_reserve()
+        await interaction.response.send_message(response, ephemeral=ephemeral)
