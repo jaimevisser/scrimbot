@@ -63,6 +63,7 @@ class Guild:
         await (self.__create_scrim(data)).init()
 
     def is_on_timeout(self, user: discord.Member) -> bool:
-        if scrimbot.utils.has_role(user, self.config["timeout_role"]):
-            return True
+        for r in user.roles:
+            if r.id == self.config["timeout_role"]:
+                return True
         return False

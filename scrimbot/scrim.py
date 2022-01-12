@@ -26,7 +26,6 @@ class Scrim:
 
         self.time = datetime.fromtimestamp(data["time"], self.guild.timezone)
 
-
     async def init(self):
         self.__view = scrimbot.ScrimView(self)
 
