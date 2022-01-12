@@ -1,7 +1,7 @@
 import math
 from datetime import datetime
 
-from discord import Member
+import discord
 
 
 def timestamp(time: datetime):
@@ -9,11 +9,11 @@ def timestamp(time: datetime):
     return f"<t:{utc}:t>"
 
 
-def user_dict(user) -> dict:
+def user_dict(user: discord.Member) -> dict:
     return {"id": user.id, "name": user.display_name, "mention": user.mention}
 
 
-def has_role(user: Member, role: int) -> bool:
+def has_role(user: discord.Member, role: int) -> bool:
     for r in user.roles:
         if r.id == role:
             return True

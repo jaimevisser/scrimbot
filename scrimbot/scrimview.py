@@ -1,12 +1,13 @@
 from typing import Optional
 
 import discord
-from discord import ButtonStyle, Interaction
+
+import scrimbot
 
 
-class MixedButton(discord.ui.Button):
+class ScrimButton(discord.ui.Button):
     def __init__(self,
-                 style: ButtonStyle = ButtonStyle.secondary,
+                 style: discord.ButtonStyle = discord.ButtonStyle.secondary,
                  label: Optional[str] = None,
                  custom_id: Optional[str] = None,
                  callback_func=None
@@ -14,25 +15,25 @@ class MixedButton(discord.ui.Button):
         super().__init__(style=style, label=label, custom_id=custom_id)
         self.__callback_func = callback_func
 
-    async def callback(self, interaction: Interaction):
+    async def callback(self, interaction: discord.Interaction):
         if self.__callback_func is None:
             return
         await self.__callback_func(interaction)
 
 
-class MixedView(discord.ui.View):
-    def __init__(self, mixed):
+class ScrimView(discord.ui.View):
+    def __init__(self, scrim: scrimbot.Scrim):
         super().__init__(timeout=None)
-        self.__mixed = mixed
-        custom_id = str(mixed.id)
+        self.__scrim = scrim
+        custom_id = str(scrim.id)
         self.use = "before"
 
-        self.__button_join = MixedButton(
+        self.__button_join = ScrimButton(
             label="Join", style=discord.ButtonStyle.green, custom_id=custom_id + ":join", callback_func=self.join)
-        self.__button_reserve = MixedButton(
+        self.__button_reserve = ScrimButton(
             label="Reserve", style=discord.ButtonStyle.blurple, custom_id=custom_id + ":reserve",
             callback_func=self.reserve)
-        self.__button_leave = MixedButton(
+        self.__button_leave = ScrimButton(
             label="Leave", style=discord.ButtonStyle.red, custom_id=custom_id + ":leave", callback_func=self.leave)
 
         self.add_item(self.__button_join)
@@ -40,35 +41,35 @@ class MixedView(discord.ui.View):
         self.add_item(self.__button_leave)
 
     async def join(self, interaction: discord.Interaction):
-        response = await self.__mixed.join(interaction.user)
+        response = await self.__scrim.join(interaction.user)
         await interaction.response.send_message(response, ephemeral=True)
 
     async def reserve(self, interaction: discord.Interaction):
-        response = await self.__mixed.reserve(interaction.user)
+        response = await self.__scrim.reserve(interaction.user)
         await interaction.response.send_message(response, ephemeral=True)
 
     async def leave(self, interaction: discord.Interaction):
-        await self.__mixed.leave(interaction.user)
-        await interaction.response.send_message("Removed you from the mixed.", ephemeral=True)
+        await self.__scrim.leave(interaction.user)
+        await interaction.response.send_message("Removed you from the scrim.", ephemeral=True)
 
 
-class MixedRunningView(discord.ui.View):
-    def __init__(self, mixed):
+class ScrimRunningView(discord.ui.View):
+    def __init__(self, scrim: scrimbot.Scrim):
         super().__init__(timeout=None)
-        self.__mixed = mixed
-        custom_id = str(mixed.id)
+        self.__scrim = scrim
+        custom_id = str(scrim.id)
         self.use = "running"
 
-        self.__button_call_reserve = MixedButton(
+        self.__button_call_reserve = ScrimButton(
             label="Call reserve", style=discord.ButtonStyle.blurple, custom_id=custom_id + ":call",
             callback_func=self.call_reserve)
 
         self.add_item(self.__button_call_reserve)
 
     async def call_reserve(self, interaction: discord.Interaction):
-        if not self.__mixed.contains_player(interaction.user.id):
+        if not self.__scrim.contains_player(interaction.user.id):
             await interaction.response.send_message("You aren't in the scrim, buddy", ephemeral=True)
             return
 
-        response, ephemeral = await self.__mixed.call_reserve()
+        response, ephemeral = await self.__scrim.call_reserve()
         await interaction.response.send_message(response, ephemeral=ephemeral)

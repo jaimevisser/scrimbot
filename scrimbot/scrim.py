@@ -2,24 +2,17 @@ import asyncio
 import math
 from datetime import datetime, timedelta
 
-import pytz
-from discord import Bot, Member
+import discord
 
-import discutils
-from data import ScrimbotData
-from mixedview import MixedView, MixedRunningView
-
-tzuk = pytz.timezone("Europe/London")
+import scrimbot
 
 
-class Mixed:
+class Scrim:
 
-    def __init__(self, bot: Bot, guild, data: dict, alldata: ScrimbotData, sync, remove):
-        self.guild = str(guild)
+    def __init__(self, guild: scrimbot.Guild, data: dict, sync, remove):
+        self.guild = guild
         self.__sync = sync
         self.data = data
-        self.__alldata = alldata
-        self.__bot = bot
         self.__size = 8
         self.__remove = remove
 
@@ -31,18 +24,19 @@ class Mixed:
         if "reserve" not in self.data:
             self.data["reserve"] = []
 
-        self.time = datetime.fromtimestamp(data["utc"], tzuk)
+        self.time = datetime.fromtimestamp(data["time"], self.guild.timezone)
 
-        self.__view = MixedView(self)
 
-    async def __init(self):
-        self.__thread = await self.__bot.fetch_channel(self.id)
+    async def init(self):
+        self.__view = scrimbot.ScrimView(self)
+
+        self.__thread = await self.guild.bot.fetch_channel(self.id)
         self.__message = await self.__thread.fetch_message(self.data["message"])
-        self.__guild = await self.__bot.fetch_guild(int(self.guild))
+        self.__guild = await self.guild.bot.fetch_guild(int(self.guild.id))
         self.__role = self.__guild.get_role(self.data["role"])
         self.__creator = await self.__guild.fetch_member(self.data["creator"])
 
-        self.__bot.loop.create_task(self.__start_mixed())
+        self.guild.bot.loop.create_task(self.__start_scrim())
 
         await self.update()
 
@@ -51,27 +45,22 @@ class Mixed:
             self.__remove(self)
             return
 
-        if self.time < datetime.now(tzuk) - timedelta(hours=2):
+        if self.time < datetime.now(self.guild.timezone) - timedelta(hours=2):
             self.__view = None
 
-        elif (self.time < datetime.now(tzuk) or "started" in self.data) and self.__view.use == "before":
+        elif (self.time < datetime.now(self.guild.timezone) or "started" in self.data) and self.__view.use == "before":
             if await self.num_reserves() > 0 and await self.num_players() > 0 and self.__get_next_reserve() is not None:
-                self.__view = MixedRunningView(self)
+                self.__view = scrimbot.ScrimRunningView(self)
             else:
                 self.__view = None
 
         name = await self.__generate_name()
         content = await self.__generate_message()
 
-        print(name)
-        print(content)
-
         await self.__message.edit(content=content, view=self.__view)
 
-        if self.time < datetime.now(tzuk) - timedelta(hours=2):
+        if self.time < datetime.now(self.guild.timezone) - timedelta(hours=2):
             await self.__thread.edit(archived=True)
-
-        print("done")
 
     async def num_players(self):
         return len(self.data["players"])
@@ -80,7 +69,7 @@ class Mixed:
         return len(self.data["reserve"])
 
     async def __generate_message(self):
-        message = f"{self.__role.mention}! Scrim at {discutils.timestamp(self.time)} " \
+        message = f"{self.__role.mention}! Scrim at {scrimbot.utils.timestamp(self.time)} " \
                   f"started by {self.__creator.mention}\n"
         if await self.num_players() > 0:
             players = await self.num_players()
@@ -109,18 +98,18 @@ class Mixed:
 
         return f"{time} {players}"
 
-    async def join(self, user: Member) -> str:
-        if self.is_on_timeout(user):
+    async def join(self, user: discord.Member) -> str:
+        if self.guild.is_on_timeout(user):
             return "Sorry buddy, you are on a timeout!"
 
         await self.__thread.add_user(user)
         if await self.num_players() < self.__size:
             if not any(u["id"] == user.id for u in self.data["players"]):
-                self.data["players"].append(discutils.user_dict(user))
+                self.data["players"].append(scrimbot.utils.user_dict(user))
                 self.__sync()
                 self.__remove_reserve(user.id)
                 await self.update()
-                return "Added you to the mixed."
+                return "Added you to the scrim."
             else:
                 return "Whoops, you are already in there!"
         else:
@@ -130,13 +119,13 @@ class Mixed:
             return "It's full, sorry! I put you on the reserve on auto-join, if a spot opens up the first reserve on " \
                    "auto-join will get it. If you don't want auto-join just press the reserve button."
 
-    async def reserve(self, user: Member) -> str:
-        if self.is_on_timeout(user):
+    async def reserve(self, user: discord.Member) -> str:
+        if self.guild.is_on_timeout(user):
             return "Sorry buddy, you are on a timeout!"
 
         await self.__thread.add_user(user)
         if not any(u["id"] == user.id for u in self.data["reserve"]):
-            self.data["reserve"].append(discutils.user_dict(user))
+            self.data["reserve"].append(scrimbot.utils.user_dict(user))
             self.__sync()
             await self.__remove_player(user.id)
             await self.update()
@@ -146,7 +135,7 @@ class Mixed:
             await self.update()
             return "You are already a reserve, turned off auto-join if it was on."
 
-    def __set_auto_join(self, user: Member, auto=True):
+    def __set_auto_join(self, user: discord.Member, auto=True):
         for player in self.data["reserve"]:
             if player["id"] == user.id:
                 if auto:
@@ -156,12 +145,7 @@ class Mixed:
                 self.__sync()
                 break
 
-    def is_on_timeout(self, user: Member):
-        if discutils.has_role(user, self.__alldata.config[self.guild]["timeoutrole"]):
-            return True
-        return False
-
-    async def leave(self, user: Member):
+    async def leave(self, user: discord.Member):
         await self.__remove_player(user.id)
         self.__remove_reserve(user.id)
 
@@ -232,12 +216,13 @@ class Mixed:
 
         return False
 
-    async def __start_mixed(self):
+    async def __start_scrim(self):
         if "started" in self.data:
             return
 
-        if self.time > datetime.now(tzuk):
-            seconds = math.floor((self.time - datetime.now(tzuk)).total_seconds())
+        now = datetime.now(self.guild.timezone)
+        if self.time > now:
+            seconds = math.floor((self.time - now).total_seconds())
             await asyncio.sleep(seconds)
 
         self.data["started"] = True
@@ -251,9 +236,10 @@ class Mixed:
         if await self.num_players() == 0:
             await self.__thread.edit(archived=True)
 
-        archivetime = self.time + timedelta(hours=2, minutes=5)
-        if archivetime > datetime.now(tzuk):
-            seconds = math.floor((archivetime - datetime.now(tzuk)).total_seconds())
+        now = datetime.now(self.guild.timezone)
+        archive_time = self.time + timedelta(hours=2, minutes=5)
+        if archive_time > now:
+            seconds = math.floor((archive_time - now).total_seconds())
             await asyncio.sleep(seconds)
 
         await self.update()
@@ -292,13 +278,7 @@ class Mixed:
 
         shortage = self.__size - numplayers + numreserves
         if shortage <= 2:
-            message += f"\n{self.__role.mention}, you might be able to make this a full mixed.\n" \
+            message += f"\n{self.__role.mention}, you might be able to make this a full scrim.\n" \
                        f"We need at least {shortage} player(s)."
 
         return message
-
-    @classmethod
-    async def create(cls, bot: Bot, guild, data: dict, alldata: ScrimbotData, sync, remove):
-        mixed = Mixed(bot, guild, data, alldata, sync, remove)
-        await mixed.__init()
-        return mixed

@@ -5,39 +5,29 @@ from datetime import datetime, timedelta
 from typing import Callable
 
 import discord
-import pytz
-from discord import HTTPException
 from discord.commands import Option
 from discord.commands.permissions import Permission
 from discord.enums import SlashCommandOptionType, ChannelType
 
-import discutils
-from data import ScrimbotData
-from log import Log
-from mixed import Mixed
+import scrimbot
+from scrimbot import utils
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
 bot = discord.Bot()
-data = ScrimbotData()
-bot_log = Log(data.get_log, data.sync)
+config = scrimbot.Config()
 
-mixeds = []
+guilds = {}
 
 bot.initialised = False
 
-enabled_guilds = data.guilds
+for g in config.guilds:
+    guilds[g] = scrimbot.Guild(str(g), config.config[str(g)], bot)
 
 
-def remove_mixed(m: Mixed):
-    if m in mixeds:
-        mixeds.remove(m)
-    data.get_mixeds(m.guild).remove(m.data)
-    data.sync()
-
-
-async def create_mixed(guild: int, mixed_data: dict):
-    return await Mixed.create(bot, guild, mixed_data, data, data.sync, remove_mixed)
+async def init():
+    for guild in guilds.values():
+        await guild.init()
 
 
 def is_mod():
@@ -48,8 +38,8 @@ def is_mod():
         if not hasattr(func, '__app_cmd_perms__'):
             func.__app_cmd_perms__ = []
 
-        for guild in data.guilds:
-            func.__app_cmd_perms__.append(Permission(int(data.config[str(guild)]["modrole"]), 1, True, guild))
+        for guild in guilds.values():
+            func.__app_cmd_perms__.append(Permission(int(guild.config["mod_role"]), 1, True, int(guild.id)))
 
         return func
 
@@ -61,32 +51,31 @@ async def on_ready():
     if not bot.initialised:
 
         bot.initialised = True
-        for guild in enabled_guilds:
-            for mixed_data in data.get_mixeds(guild):
-                mixeds.append(await create_mixed(guild, mixed_data))
+        await init()
 
         print("Bot initialised")
 
 
-@bot.slash_command(guild_ids=enabled_guilds)
+@bot.slash_command(guild_ids=config.guilds)
 async def report(
         ctx,
         name: Option(SlashCommandOptionType.user, "User to report"),
         text: Option(str, "Tell us what you want to report")
 ):
     """Send a message to the moderators"""
-    if bot_log.daily_report_count(str(ctx.guild_id), ctx.author.id) > data.config[str(ctx.guild_id)]["reportsperday"]:
+    guild = guilds[ctx.guild_id]
+
+    if guild.log.daily_report_count(ctx.author.id) > guild.config["reports_per_day"]:
         await ctx.respond("You've sent too many reports in the past 24 hours, please wait a bit", ephemeral=True)
         return
 
-    modchannel = await bot.fetch_channel(data.config[str(ctx.guild_id)]["modchannel"])
-    bot_log.add_report(ctx.guild_id, ctx.channel.id, name.id, ctx.author.id, text)
-    await modchannel.send(f"{ctx.author.mention} would like to report {name.mention} "
-                          f"in {ctx.channel.mention} for the following:\n{text}")
+    guild.log.add_report(ctx.channel.id, name.id, ctx.author.id, text)
+    await guild.mod_channel.send(f"{ctx.author.mention} would like to report {name.mention} "
+                                 f"in {ctx.channel.mention} for the following:\n{text}")
     await ctx.respond("Report sent", ephemeral=True)
 
 
-@bot.slash_command(guild_ids=enabled_guilds)
+@bot.slash_command(guild_ids=config.guilds)
 @is_mod()
 async def note(
         ctx,
@@ -94,14 +83,14 @@ async def note(
         text: Option(str, "Note")
 ):
     """Make a note in a users' log."""
+    guild = guilds[ctx.guild_id]
 
-    modchannel = await bot.fetch_channel(data.config[str(ctx.guild_id)]["modchannel"])
-    bot_log.add_note(ctx.guild_id, name.id, ctx.author.id, text)
-    await modchannel.send(f"User {name.mention} has had a note added by {ctx.author.mention}: {text}")
+    guild.log.add_note(name.id, ctx.author.id, text)
+    await guild.mod_channel.send(f"User {name.mention} has had a note added by {ctx.author.mention}: {text}")
     await ctx.respond("Note added", ephemeral=True)
 
 
-@bot.slash_command(guild_ids=enabled_guilds)
+@bot.slash_command(guild_ids=config.guilds)
 @is_mod()
 async def warn(
         ctx,
@@ -109,31 +98,32 @@ async def warn(
         text: Option(str, "Warning")
 ):
     """Warn a user. A DM will be sent to the user as well."""
+    guild = guilds[ctx.guild_id]
 
-    modchannel = await bot.fetch_channel(data.config[str(ctx.guild_id)]["modchannel"])
-    bot_log.add_warning(ctx.guild_id, name.id, ctx.author.id, text)
-    warn_count = bot_log.warning_count(ctx.guild_id, name.id)
+    guild.log.add_warning(name.id, ctx.author.id, text)
+    warn_count = guild.log.warning_count(name.id)
     message = "User warned"
     try:
         await name.send(f"You have been warned by {ctx.author.mention}: {text}\n"
                         f"Your warning count is now at {warn_count}")
-    except HTTPException:
+    except discord.HTTPException:
         message = "Warning logged but couldn't send the user the warning"
 
-    await modchannel.send(f"User {name.mention} has been warned by {ctx.author.mention}: {text}\n"
-                          f"Their warning count is now at {warn_count}")
+    await guild.mod_channel.send(f"User {name.mention} has been warned by {ctx.author.mention}: {text}\n"
+                                 f"Their warning count is now at {warn_count}")
     await ctx.respond(message, ephemeral=True)
 
 
-@bot.slash_command(guild_ids=enabled_guilds)
+@bot.slash_command(guild_ids=config.guilds)
 @is_mod()
 async def rmlog(
         ctx,
         id: Option(str, "ID of the entry to remove, it's the gibberish in square brackets [] in the log")
 ):
     """Remove a single log entry from a user"""
+    guild = guilds[ctx.guild_id]
 
-    num_removed = bot_log.remove(ctx.guild_id, predicate=lambda entry: entry["id"] == id)
+    num_removed = guild.log.remove(predicate=lambda entry: entry["id"] == id)
 
     if num_removed > 0:
         await ctx.respond("Entry removed", ephemeral=True)
@@ -141,38 +131,40 @@ async def rmlog(
         await ctx.respond("No matching entries found", ephemeral=True)
 
 
-@bot.slash_command(guild_ids=enabled_guilds)
+@bot.slash_command(guild_ids=config.guilds)
 @is_mod()
 async def purgelog(
         ctx,
         name: Option(SlashCommandOptionType.user, "User to clear the log for")
 ):
     """Remove everything in the log for a user"""
-    modchannel = await bot.fetch_channel(data.config[str(ctx.guild_id)]["modchannel"])
-    num_removed = bot_log.remove(ctx.guild_id, predicate=lambda entry: entry["user"] == name.id)
+    guild = guilds[ctx.guild_id]
+
+    num_removed = guild.log.remove(predicate=lambda entry: entry["user"] == name.id)
 
     if num_removed > 0:
-        await modchannel.send(f"{ctx.author.mention} purged the log of {name.mention}.")
+        await guild.mod_channel.send(f"{ctx.author.mention} purged the log of {name.mention}.")
         await ctx.respond("Matching entries removed", ephemeral=True)
     else:
         await ctx.respond("No matching entries found", ephemeral=True)
 
 
-@bot.slash_command(guild_ids=enabled_guilds)
+@bot.slash_command(guild_ids=config.guilds)
 @is_mod()
 async def log(
         ctx,
         name: Option(SlashCommandOptionType.user, "User to display the log for")
 ):
     """Display the log of a user, will print the log in the current channel."""
+    guild = guilds[ctx.guild_id]
     types = None
     authors = False
 
-    if ctx.channel.id == data.config[str(ctx.guild_id)]["modchannel"]:
-        types = Log.ALL
+    if ctx.channel.id == guild.mod_channel.id:
+        types = scrimbot.Log.ALL
         authors = True
 
-    entries = bot_log.print_log(ctx.guild_id, name.id, types=types, authors=authors)
+    entries = guild.log.print_log(name.id, types=types, authors=authors)
 
     if len(entries) == 0:
         await ctx.respond(f"Nothing in the log for {name}")
@@ -189,59 +181,60 @@ async def log(
     await ctx.respond(output)
 
 
-@bot.slash_command(guild_ids=enabled_guilds)
+@bot.slash_command(guild_ids=config.guilds)
 async def scrim(
         ctx,
-        time: Option(str, "Time (UK timezone) when the scrim will start, format must be 14:00")
+        time: Option(str, "Time when the scrim will start, format must be 14:00")
 ):
     """Start a scrim in this channel."""
-    if discutils.has_role(ctx.author, data.config[str(ctx.guild_id)]["timeoutrole"]):
+    guild = guilds[ctx.guild_id]
+
+    if guild.is_on_timeout(ctx.author):
         await ctx.respond("Sorry buddy, you are on a timeout!", ephemeral=True)
         return
 
     match = re.match("([0-9]{1,2}):?([0-9]{2})", str(time))
 
-    mixedobj = {"players": [], "reserves": []}
+    scrim_data = {"players": [], "reserves": []}
 
     if not match:
         await ctx.respond("Invalid time, format must be 14:00!", ephemeral=True)
         return
 
-    if not ctx.channel.id in map(lambda x: int(x), data.config[str(ctx.guild_id)]["mixedchannels"].keys()):
+    if str(ctx.channel.id) not in guild.config["scrim_channels"].keys():
         await ctx.respond("This is not a channel for organising scrims!", ephemeral=True)
         return
 
-    scrimmer_role = data.config[str(ctx.guild_id)]["mixedchannels"][str(ctx.channel.id)]["role"]
+    scrimmer_role = guild.config["scrim_channels"][str(ctx.channel.id)]["role"]
 
-    mixedhour, mixedminutes = match.groups()
+    scrim_hour, scrim_minute = match.groups()
 
-    if int(mixedhour) > 23 or int(mixedminutes) > 59:
+    if int(scrim_hour) > 23 or int(scrim_minute) > 59:
         await ctx.respond("Invalid time.", ephemeral=True)
         return
 
-    uknow = datetime.now(pytz.timezone("Europe/London"))
-    mixedtime = uknow.replace(hour=int(mixedhour), minute=int(mixedminutes), second=0, microsecond=0)
+    guild_time = datetime.now(guild.timezone)
+    scrim_time = guild_time.replace(hour=int(scrim_hour), minute=int(scrim_minute), second=0, microsecond=0)
 
-    if mixedtime < uknow:
-        mixedtime += timedelta(days=1)
+    if scrim_time < guild_time:
+        scrim_time += timedelta(days=1)
 
-    mixed_utc = math.floor(mixedtime.timestamp())
+    scrim_timestamp = math.floor(scrim_time.timestamp())
 
-    mixedobj["utc"] = mixed_utc
+    scrim_data["time"] = scrim_timestamp
 
-    thread = await ctx.channel.create_thread(name=f"{mixedhour}{mixedminutes}", type=ChannelType.public_thread)
+    thread = await ctx.channel.create_thread(name=f"{scrim_hour}{scrim_minute}", type=ChannelType.public_thread)
+    scrim_data["thread"] = thread.id
 
-    mixedobj["thread"] = thread.id
-    message = await thread.send(f"Scrim at {discutils.timestamp(mixedtime)}")
-    mixedobj["message"] = message.id
-    mixedobj["role"] = scrimmer_role
-    mixedobj["creator"] = ctx.author.id
-    data.get_mixeds(ctx.guild_id).append(mixedobj)
-    data.sync()
+    message = await thread.send(f"Scrim at {utils.timestamp(scrim_time)}")
+    scrim_data["message"] = message.id
 
-    mixeds.append(await create_mixed(ctx.guild_id, mixedobj))
+    scrim_data["role"] = scrimmer_role
+    scrim_data["creator"] = ctx.author.id
 
-    await ctx.respond(f"Scrim created for {discutils.timestamp(mixedtime)} (your local time)", ephemeral=True)
+    await guild.create_scrim(scrim_data)
+
+    await ctx.respond(f"Scrim created for {utils.timestamp(scrim_time)} (your local time)", ephemeral=True)
 
 
-bot.run(data.token)
+bot.run(config.token)
