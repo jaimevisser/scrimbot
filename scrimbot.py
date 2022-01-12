@@ -10,7 +10,7 @@ from discord.commands.permissions import Permission
 from discord.enums import SlashCommandOptionType, ChannelType
 
 import scrimbot
-from scrimbot import utils
+from scrimbot import tag
 
 logging.basicConfig(level=logging.INFO)
 
@@ -226,7 +226,7 @@ async def scrim(
     thread = await ctx.channel.create_thread(name=f"{scrim_hour}{scrim_minute}", type=ChannelType.public_thread)
     scrim_data["thread"] = thread.id
 
-    message = await thread.send(f"Scrim at {utils.timestamp(scrim_time)}")
+    message = await thread.send(f"Scrim at {tag.time(scrim_time)}")
     scrim_data["message"] = message.id
 
     scrim_data["role"] = scrimmer_role
@@ -234,7 +234,7 @@ async def scrim(
 
     await guild.create_scrim(scrim_data)
 
-    await ctx.respond(f"Scrim created for {utils.timestamp(scrim_time)} (your local time)", ephemeral=True)
+    await ctx.respond(f"Scrim created for {tag.time(scrim_time)} (your local time)", ephemeral=True)
 
 
 bot.run(config.token)

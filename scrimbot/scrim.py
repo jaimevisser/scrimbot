@@ -68,7 +68,7 @@ class Scrim:
         return len(self.data["reserve"])
 
     async def __generate_message(self):
-        message = f"{self.__role.mention}! Scrim at {scrimbot.utils.timestamp(self.time)} " \
+        message = f"{self.__role.mention}! Scrim at {scrimbot.tag.time(self.time)} " \
                   f"started by {self.__creator.mention}\n"
         if await self.num_players() > 0:
             players = await self.num_players()
@@ -104,7 +104,7 @@ class Scrim:
         await self.__thread.add_user(user)
         if await self.num_players() < self.__size:
             if not any(u["id"] == user.id for u in self.data["players"]):
-                self.data["players"].append(scrimbot.utils.user_dict(user))
+                self.data["players"].append(user_dict(user))
                 self.__sync()
                 self.__remove_reserve(user.id)
                 await self.update()
@@ -124,7 +124,7 @@ class Scrim:
 
         await self.__thread.add_user(user)
         if not any(u["id"] == user.id for u in self.data["reserve"]):
-            self.data["reserve"].append(scrimbot.utils.user_dict(user))
+            self.data["reserve"].append(user_dict(user))
             self.__sync()
             await self.__remove_player(user.id)
             await self.update()
@@ -281,3 +281,7 @@ class Scrim:
                        f"We need at least {shortage} player(s)."
 
         return message
+
+
+def user_dict(user: discord.Member) -> dict:
+    return {"id": user.id, "name": user.display_name, "mention": user.mention}
