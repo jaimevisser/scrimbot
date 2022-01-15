@@ -1,0 +1,7 @@
+version: '2.4'
+services:
+  scrimbot:
+    build: ./src/scrimbot/
+    container_name: scrimbot
+    volumes:
+      - ./scrimbot-data:/usr/src/app/data
