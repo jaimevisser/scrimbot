@@ -30,7 +30,7 @@ class Scrim:
         self.__view = scrimbot.ScrimView(self)
 
         self.__thread = await self.guild.bot.fetch_channel(self.id)
-        self.__message = await self.__thread.fetch_message(self.data["message"])
+        self.__message = await self.__thread.parent.fetch_message(self.data["message"])
         self.__guild = await self.guild.bot.fetch_guild(int(self.guild.id))
         self.__role = self.__guild.get_role(self.data["role"])
         self.__creator = await self.__guild.fetch_member(self.data["creator"])
