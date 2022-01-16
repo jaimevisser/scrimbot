@@ -93,7 +93,7 @@ class Scrim:
     async def __generate_name(self):
         players = await self.num_players()
 
-        time = self.time.strftime("%H%M")
+        time = self.time.strftime("%H.%M")
 
         return f"{time} {players}"
 

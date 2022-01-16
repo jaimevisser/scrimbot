@@ -184,7 +184,7 @@ async def log(
 @bot.slash_command(guild_ids=config.guilds)
 async def scrim(
         ctx,
-        time: Option(str, "Time when the scrim will start, format must be 14:00")
+        time: Option(str, "Time when the scrim will start, format must be 14:00, 14.00 or 1400")
 ):
     """Start a scrim in this channel."""
     guild = guilds[ctx.guild_id]
@@ -193,12 +193,12 @@ async def scrim(
         await ctx.respond("Sorry buddy, you are on a timeout!", ephemeral=True)
         return
 
-    match = re.match("([0-9]{1,2}):?([0-9]{2})", str(time))
+    match = re.match("([0-9]{1,2})[:.]?([0-9]{2})", str(time))
 
     scrim_data = {"players": [], "reserves": []}
 
     if not match:
-        await ctx.respond("Invalid time, format must be 14:00!", ephemeral=True)
+        await ctx.respond("Invalid time, format must be 14:00, 14.00 or 1400!", ephemeral=True)
         return
 
     if str(ctx.channel.id) not in guild.config["scrim_channels"].keys():
