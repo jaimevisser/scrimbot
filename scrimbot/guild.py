@@ -44,8 +44,8 @@ class Guild:
             json.dump(data, jsonfile)
 
     def __create_scrim(self, data: dict):
-        from scrimbot.scrim import Scrim
-        scrim = Scrim(self, data, self.__sync_scrims, self.__remove_scrim)
+        from scrimbot.scrimmanager import ScrimManager
+        scrim = ScrimManager(self, data, self.__sync_scrims, self.__remove_scrim)
         self.scrims.append(scrim)
         return scrim
 

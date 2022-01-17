@@ -22,7 +22,7 @@ class ScrimButton(discord.ui.Button):
 
 
 class ScrimView(discord.ui.View):
-    def __init__(self, scrim: scrimbot.Scrim):
+    def __init__(self, scrim: scrimbot.ScrimManager):
         super().__init__(timeout=None)
         self.__scrim = scrim
         custom_id = str(scrim.id)
@@ -54,7 +54,7 @@ class ScrimView(discord.ui.View):
 
 
 class ScrimRunningView(discord.ui.View):
-    def __init__(self, scrim: scrimbot.Scrim):
+    def __init__(self, scrim: scrimbot.ScrimManager):
         super().__init__(timeout=None)
         self.__scrim = scrim
         custom_id = str(scrim.id)

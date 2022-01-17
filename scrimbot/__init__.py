@@ -1,5 +1,5 @@
 from scrimbot.guild import Guild
-from scrimbot.scrim import Scrim
+from scrimbot.scrimmanager import ScrimManager
 from scrimbot.config import Config
 from scrimbot.log import Log
 from scrimbot import tag

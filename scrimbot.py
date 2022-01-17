@@ -223,7 +223,7 @@ async def scrim(
 
     scrim_data["time"] = scrim_timestamp
 
-    message = await ctx.channel.send(f"Scrim at {tag.time(scrim_time)}")
+    message = await ctx.channel.send(f"{scrimbot.tag.role(scrimmer_role)} at {tag.time(scrim_time)} (your local time)")
 
     thread = await ctx.channel.create_thread(message=message, name=f"{scrim_hour}.{scrim_minute}", type=ChannelType.public_thread)
     scrim_data["thread"] = thread.id
