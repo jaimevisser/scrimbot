@@ -1,6 +1,6 @@
 # Scrimbot
 
-A discord bot for organising 8-man group events using threads. Built for EchoVR Discrod communities.
+A discord bot for organising 8-man group events using threads. Built for EchoVR Discord communities.
 
 The bot is written in Python and has a dockerfile included in this repo to easily get it up and running. If you use docker compose an example compose file can be found in examples.
 
