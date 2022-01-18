@@ -10,7 +10,7 @@ from discord.commands.permissions import Permission
 from discord.enums import SlashCommandOptionType, ChannelType
 
 import scrimbot
-from scrimbot import tag
+from scrimbot import tag, Scrim
 
 logging.basicConfig(level=logging.INFO)
 
@@ -49,7 +49,6 @@ def is_mod():
 @bot.event
 async def on_ready():
     if not bot.initialised:
-
         bot.initialised = True
         await init()
 
@@ -195,8 +194,6 @@ async def scrim(
 
     match = re.match("([0-9]{1,2})[:.]?([0-9]{2})", str(time))
 
-    scrim_data = {"players": [], "reserves": []}
-
     if not match:
         await ctx.respond("Invalid time, format must be 14:00, 14.00 or 1400!", ephemeral=True)
         return
@@ -204,8 +201,6 @@ async def scrim(
     if str(ctx.channel.id) not in guild.config["scrim_channels"].keys():
         await ctx.respond("This is not a channel for organising scrims!", ephemeral=True)
         return
-
-    scrimmer_role = guild.config["scrim_channels"][str(ctx.channel.id)]["role"]
 
     scrim_hour, scrim_minute = match.groups()
 
@@ -221,16 +216,24 @@ async def scrim(
 
     scrim_timestamp = math.floor(scrim_time.timestamp())
 
-    scrim_data["time"] = scrim_timestamp
+    scrimmer_role = guild.config["scrim_channels"][str(ctx.channel.id)]["role"]
 
-    thread = await ctx.channel.create_thread(name=f"{scrim_hour}{scrim_minute}", type=ChannelType.public_thread)
+    scrim_data = {"players": [],
+                  "reserve": [],
+                  "role": scrimmer_role,
+                  "creator": ctx.author.id,
+                  "time": scrim_timestamp,
+                  "thread": 0}
+
+    scrim = Scrim(scrim_data, guild.timezone, None)
+
+    message = await ctx.channel.send(scrim.generate_header_message())
+
+    thread = await ctx.channel.create_thread(message=message, name=f"{scrim_hour}.{scrim_minute}",
+                                             type=ChannelType.public_thread)
     scrim_data["thread"] = thread.id
-
-    message = await thread.send(f"Scrim at {tag.time(scrim_time)}")
-    scrim_data["message"] = message.id
-
-    scrim_data["role"] = scrimmer_role
-    scrim_data["creator"] = ctx.author.id
+    content = await thread.send(scrim.generate_content_message())
+    scrim_data["message"] = content.id
 
     await guild.create_scrim(scrim_data)
 

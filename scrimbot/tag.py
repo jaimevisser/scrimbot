@@ -15,3 +15,15 @@ class TimeFormat:
 def time(t: datetime, time_format=TimeFormat.TIME):
     utc = math.floor(t.timestamp())
     return f"<t:{utc}:{time_format}>"
+
+
+def role(r):
+    return f"<@&{r}>"
+
+
+def user(u):
+    return f"<@{u}>"
+
+
+def channel(c):
+    return f"<#{c}>"
