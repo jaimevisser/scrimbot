@@ -18,7 +18,7 @@ def time(t: datetime, time_format=TimeFormat.TIME):
 
 
 def role(r):
-    return f"<@{r}>"
+    return f"<@&{r}>"
 
 
 def user(u):

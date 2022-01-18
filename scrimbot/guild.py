@@ -51,7 +51,7 @@ class Guild:
 
     def __remove_scrim(self, scrim):
         self.scrims.remove(scrim)
-        self.__scrims.remove(scrim.data)
+        self.__scrims.remove(scrim.scrim.data)
         self.__sync_scrims()
 
     def __sync_scrims(self):

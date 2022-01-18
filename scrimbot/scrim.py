@@ -85,9 +85,16 @@ class Scrim:
         if player:
             self.data[playerlist].remove(player)
 
-    def generate_message(self) -> str:
-        message = f"{tag.role(self.role)}! Scrim at {tag.time(self.time)} " \
-                  f"started by {self.creator}\n"
+    def generate_header_message(self) -> str:
+        count = ""
+        if self.num_players() > 0:
+            count = f"**({self.num_players()}/{self.size})** "
+
+        return f"{tag.role(self.role)}! Scrim at {tag.time(self.time)} {count}" \
+               f"started by {tag.user(self.creator)}\n"
+
+    def generate_content_message(self) -> str:
+        message = ""
         if self.num_players() > 0:
             players = self.num_players()
             maxplayers = self.size
@@ -105,6 +112,9 @@ class Scrim:
                 if "called" in player:
                     extra = "(called)"
                 message += f"- {tag.user(player['id'])} {extra}\n"
+
+        if message == "":
+            message = "Nobody signed up yet."
 
         return message
 
