@@ -24,6 +24,7 @@ class Guild:
 
     async def init(self):
         self.mod_channel = await self.bot.fetch_channel(self.config["mod_channel"])
+        self.guildobj = await self.bot.fetch_guild(int(self.id))
 
         for scrim in self.scrims:
             await scrim.init()

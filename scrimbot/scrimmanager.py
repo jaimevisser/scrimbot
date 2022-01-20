@@ -3,8 +3,10 @@ import math
 from datetime import datetime, timedelta
 
 import discord
+from discord import Color
 
 import scrimbot
+from scrimbot import tag
 from scrimbot.scrim import Scrim
 
 
@@ -45,10 +47,26 @@ class ScrimManager:
             else:
                 self.__view = None
 
-        name = self.scrim.generate_name()
-        content = self.scrim.generate_content_message()
+        embed = discord.Embed(title=f"Scrim at {tag.time(self.scrim.time)}",
+                              type="rich",
+                              colour=discord.Colour.green(),
+                              timestamp=self.scrim.time)
+        player_list = self.scrim.generate_player_list() if self.scrim.num_players() > 0 else "no signups yet"
 
-        await self.__contentmessage.edit(content=content, view=self.__view)
+        embed.add_field(name=f"Players ({self.scrim.num_players()}/{self.scrim.size})",
+                            value=player_list,
+                            inline=True)
+
+        reserve_list = self.scrim.generate_reserve_list() if self.scrim.num_reserves() > 0 else "no reserves"
+
+        embed.add_field(name=f"Reserves ({self.scrim.num_reserves()})",
+                            value=reserve_list,
+                            inline=True)
+
+        author = self.scrim.author
+        embed.set_author(name=author["name"], icon_url=author["avatar"])
+
+        await self.__contentmessage.edit(content="", embeds=[embed], view=self.__view)
         await self.__startmessage.edit(content=self.scrim.generate_header_message())
 
         if self.scrim.time < datetime.now(self.guild.timezone) - timedelta(hours=2):
@@ -144,5 +162,3 @@ class ScrimManager:
 
 def user_dict(user: discord.Member) -> dict:
     return {"id": user.id, "name": user.display_name, "mention": user.mention}
-
-

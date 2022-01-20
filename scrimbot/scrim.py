@@ -10,7 +10,7 @@ class Scrim:
         self.size = 8
         self.time = datetime.fromtimestamp(data["time"], timezone)
         self.role = self.data["role"]
-        self.creator = self.data["creator"]
+        self.author = self.data["author"]
         self.__sync = sync
 
         if "players" not in self.data:
@@ -84,6 +84,7 @@ class Scrim:
 
         if player:
             self.data[playerlist].remove(player)
+            self.__sync()
 
     def generate_header_message(self) -> str:
         count = ""
@@ -91,7 +92,19 @@ class Scrim:
             count = f"**({self.num_players()}/{self.size})** "
 
         return f"{tag.role(self.role)}! Scrim at {tag.time(self.time)} {count}" \
-               f"started by {tag.user(self.creator)}\n"
+               f"started by {tag.user(self.author['id'])}\n"
+
+    def generate_player_list(self) -> str:
+        message = ""
+        for player in self.data["players"]:
+            message += f"{player['mention']}\n"
+        return message
+
+    def generate_reserve_list(self) -> str:
+        message = ""
+        for player in self.data["reserve"]:
+            message += f"{player['mention']}\n"
+        return message
 
     def generate_content_message(self) -> str:
         message = ""

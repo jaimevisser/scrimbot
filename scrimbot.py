@@ -12,7 +12,7 @@ from discord.enums import SlashCommandOptionType, ChannelType
 import scrimbot
 from scrimbot import tag, Scrim
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 
 bot = discord.Bot()
 config = scrimbot.Config()
@@ -215,13 +215,17 @@ async def scrim(
         scrim_time += timedelta(days=1)
 
     scrim_timestamp = math.floor(scrim_time.timestamp())
+    channel_config = guild.config["scrim_channels"][str(ctx.channel.id)]
+    scrimmer_role = channel_config["role"]
 
-    scrimmer_role = guild.config["scrim_channels"][str(ctx.channel.id)]["role"]
+    author: discord.User = ctx.author
 
     scrim_data = {"players": [],
                   "reserve": [],
                   "role": scrimmer_role,
-                  "creator": ctx.author.id,
+                  "author": {"id": author.id,
+                             "name": author.display_name,
+                             "avatar": author.display_avatar.url},
                   "time": scrim_timestamp,
                   "thread": 0}
 
@@ -238,6 +242,8 @@ async def scrim(
     await guild.create_scrim(scrim_data)
 
     await ctx.respond(f"Scrim created for {tag.time(scrim_time)} (your local time)", ephemeral=True)
+
+
 
 
 bot.run(config.token)
