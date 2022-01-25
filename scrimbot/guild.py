@@ -22,14 +22,20 @@ class Guild:
         self.timezone = pytz.timezone(self.config["timezone"])
         self.scrims = []
         self.broadcasts: list[scrimbot.Broadcaster] = []
+        self.mod_roles = set()
         for scrim in self.__scrims:
             self.__create_scrim(scrim)
+        if "mod_role" in self.config:
+            self.mod_roles = self.mod_roles.union({self.config["mod_role"]})
+        if "mod_roles" in self.config:
+            self.mod_roles = self.mod_roles.union(set(self.config["mod_roles"]))
 
     async def init(self):
         self.mod_channel = await self.bot.fetch_channel(self.config["mod_channel"])
         self.guildobj = await self.bot.fetch_guild(int(self.id))
 
-        for scrim in self.scrims:
+        scrims = self.scrims.copy()
+        for scrim in scrims:
             try:
                 await scrim.init()
             except:

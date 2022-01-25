@@ -42,7 +42,8 @@ def is_mod():
             func.__app_cmd_perms__ = []
 
         for guild in guilds.values():
-            func.__app_cmd_perms__.append(Permission(int(guild.config["mod_role"]), 1, True, int(guild.id)))
+            for role in guild.mod_roles:
+                func.__app_cmd_perms__.append(Permission(int(role), 1, True, int(guild.id)))
 
         return func
 
