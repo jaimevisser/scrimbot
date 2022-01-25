@@ -55,7 +55,7 @@ class ScrimManager:
             self.__view = None
 
         elif (self.scrim.time < datetime.now(self.guild.timezone) or "started" in self.scrim.data) and \
-                self.__view.use == "before":
+                hasattr(self.__view, "use") and self.__view.use == "before":
             if self.scrim.num_reserves() > 0 and self.scrim.num_players() > 0 and \
                     self.scrim.get_next_reserve() is not None:
                 self.__view = scrimbot.ScrimRunningView(self)
@@ -159,19 +159,16 @@ class ScrimManager:
         return self.scrim.contains_user(user)
 
     async def __start_scrim(self):
-        if "started" in self.scrim.data:
-            return
-
         now = datetime.now(self.guild.timezone)
         if self.scrim.time > now:
             seconds = math.floor((self.scrim.time - now).total_seconds())
             await asyncio.sleep(seconds)
 
-        self.scrim.data["started"] = True
-        self.__sync()
-
-        if not self.__thread.archived:
-            await self.__thread.send(self.scrim.generate_start_message())
+        if "started" not in self.scrim.data:
+            if not self.__thread.archived:
+                await self.__thread.send(self.scrim.generate_start_message())
+            self.scrim.data["started"] = True
+            self.__sync()
 
         await self.update()
 
