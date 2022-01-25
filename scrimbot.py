@@ -208,6 +208,8 @@ async def scrim(
         await ctx.respond("Invalid time.", ephemeral=True)
         return
 
+    await ctx.defer(ephemeral=True)
+
     guild_time = datetime.now(guild.timezone)
     scrim_time = guild_time.replace(hour=int(scrim_hour), minute=int(scrim_minute), second=0, microsecond=0)
 
