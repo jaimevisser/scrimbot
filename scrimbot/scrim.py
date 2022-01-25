@@ -12,6 +12,7 @@ class Scrim:
         self.role = self.data["role"]
         self.author = self.data["author"]
         self.__sync = sync
+        self.full = False
 
         if "players" not in self.data:
             self.data["players"] = []
@@ -31,20 +32,25 @@ class Scrim:
                 return r
         return None
 
+    def contains_user(self, user: int) -> bool:
+        return self.contains_player(user) or self.contains_reserve(user)
+
     def contains_player(self, user: int) -> bool:
-        for x in self.data["players"]:
-            if x["id"] == user:
-                return True
+        return any(u["id"] == user for u in self.data["players"])
 
-        for x in self.data["reserve"]:
-            if x["id"] == user:
-                return True
+    def contains_reserve(self, user: int) -> bool:
+        return any(u["id"] == user for u in self.data["reserve"])
 
-        return False
+    def add_player(self, player):
+        self.data["players"].append(player)
+        self.full = self.num_players() == self.size
+        self.__sync()
+        self.remove_reserve(player["id"])
 
     def remove_player(self, player_id):
         self.__remove_from_playerlist("players", player_id)
-        if self.num_players() < self.size:
+        self.full = self.num_players() == self.size
+        if not self.full:
             auto = None
             for r in self.data["reserve"]:
                 if "auto" in r:
@@ -52,11 +58,14 @@ class Scrim:
                     break
 
             if auto is not None:
-                self.data["reserve"].remove(auto)
                 if "auto" in auto:
                     del auto["auto"]
-                self.data["players"].append(auto)
-                self.__sync()
+                self.add_player(auto)
+
+    def add_reserve(self, reserve):
+        self.data["reserve"].append(reserve)
+        self.__sync()
+        self.remove_player(reserve["id"])
 
     def remove_reserve(self, player_id):
         self.__remove_from_playerlist("reserve", player_id)
@@ -94,6 +103,11 @@ class Scrim:
         return f"{tag.role(self.role)}! Scrim at {tag.time(self.time)} {count}" \
                f"started by {tag.user(self.author['id'])}\n"
 
+    def generate_broadcast_listing(self) -> str:
+        full = " **FULL**" if self.num_players() == self.size else ""
+
+        return f"{tag.time(self.time)} Scrim{full}"
+
     def generate_player_list(self) -> str:
         message = ""
         for player in self.data["players"]:
@@ -103,7 +117,12 @@ class Scrim:
     def generate_reserve_list(self) -> str:
         message = ""
         for player in self.data["reserve"]:
-            message += f"{player['mention']}\n"
+            extra = ""
+            if "auto" in player and "started" not in self.data:
+                extra = " (auto-join)"
+            if "called" in player:
+                extra = " (called)"
+            message += f"{player['mention']}{extra}\n"
         return message
 
     def generate_content_message(self) -> str:

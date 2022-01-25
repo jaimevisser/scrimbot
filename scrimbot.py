@@ -215,7 +215,7 @@ async def scrim(
         scrim_time += timedelta(days=1)
 
     scrim_timestamp = math.floor(scrim_time.timestamp())
-    channel_config = guild.config["scrim_channels"][str(ctx.channel.id)]
+    channel_config = guild.scrim_channel_config(ctx.channel.id)
     scrimmer_role = channel_config["role"]
 
     author: discord.User = ctx.author
@@ -242,8 +242,6 @@ async def scrim(
     await guild.create_scrim(scrim_data)
 
     await ctx.respond(f"Scrim created for {tag.time(scrim_time)} (your local time)", ephemeral=True)
-
-
 
 
 bot.run(config.token)

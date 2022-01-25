@@ -1,3 +1,4 @@
+import asyncio
 import json
 import os
 
@@ -12,13 +13,14 @@ class Guild:
     def __init__(self, id: str, config: dict, bot: discord.Bot):
         self.id = str(id)
         self.config = config
-        self.bot = bot
+        self.bot: discord.Bot = bot
         self.__log = self.__load_list("log")
         self.__scrims = self.__load_list("scrims")
         self.log = scrimbot.Log(self.__log, lambda: self.__sync(self.__log, "log"))
         self.mod_channel = None
         self.timezone = pytz.timezone(self.config["timezone"])
         self.scrims = []
+        self.broadcasts: list[scrimbot.Broadcaster] = []
         for scrim in self.__scrims:
             self.__create_scrim(scrim)
 
@@ -28,6 +30,12 @@ class Guild:
 
         for scrim in self.scrims:
             await scrim.init()
+
+        self.__broadcast_channels = \
+            set(s["broadcast_channel"] for s in self.config["scrim_channels"].values() if "broadcast_channel" in s)
+
+        for b in self.__broadcast_channels:
+            self.broadcasts.append(scrimbot.Broadcaster(b, self))
 
     def __load_list(self, name: str) -> list:
         try:
@@ -68,3 +76,13 @@ class Guild:
             if r.id == self.config["timeout_role"]:
                 return True
         return False
+
+    async def update_broadcast(self):
+        for b in self.broadcasts:
+            await b.update()
+
+    def scrim_channel_config(self, channnel):
+        return self.config["scrim_channels"][str(channnel)]
+
+    def queue_task(self, coro) -> asyncio.Task:
+        return self.bot.loop.create_task(coro)
