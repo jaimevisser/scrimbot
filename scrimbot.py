@@ -1,7 +1,7 @@
 import logging
 import math
 import re
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Callable
 
 import discord
@@ -244,6 +244,28 @@ async def scrim(
     await guild.create_scrim(scrim_data)
 
     await ctx.respond(f"Scrim created for {tag.time(scrim_time)} (your local time)", ephemeral=True)
+
+
+@bot.slash_command(name="active-scrims", guild_ids=config.guilds)
+async def active_scrims(
+        ctx
+):
+    """Get a list of active scrims that haven't started yet (10 max)"""
+    guild = guilds[ctx.guild_id]
+
+    scrims: list[scrimbot.ScrimManager] = guild.scrims
+    relevant_scrims: list[scrimbot.ScrimManager] = \
+        list([s for s in scrims if s.scrim.time >= datetime.now(timezone.utc)])
+    relevant_scrims.sort(key=lambda s: s.scrim.time)
+    relevant_scrims = relevant_scrims[:10]
+
+    if len(relevant_scrims) == 0:
+        await ctx.respond("No scrims currently active", ephemeral=True)
+        return
+
+    embeds = list([s.create_rich_embed() for s in relevant_scrims])
+
+    await ctx.respond(embeds=embeds, ephemeral=True)
 
 
 bot.run(config.token)

@@ -74,7 +74,8 @@ class ScrimManager:
         embed = discord.Embed(title=f"Mixed scrim at {tag.time(self.scrim.time)} (local time)",
                               type="rich",
                               colour=discord.Colour.green(),
-                              timestamp=self.scrim.time)
+                              timestamp=self.scrim.time,
+                              url=self.url)
         player_list = self.scrim.generate_player_list() if self.scrim.num_players() > 0 else "no signups yet"
 
         embed.add_field(name=f"Players ({self.scrim.num_players()}/{self.scrim.size})",

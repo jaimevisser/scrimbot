@@ -45,9 +45,11 @@ class Broadcaster:
     async def __update(self):
         scrims: list[ScrimManager] = self.guild.scrims
         relevant_scrims: list[ScrimManager] = \
-            list([s for s in scrims if s.broadcast == self.channel and s.scrim.time >= datetime.now(timezone.utc)])[:10]
+            list([s for s in scrims if s.broadcast == self.channel and s.scrim.time >= datetime.now(timezone.utc)])
 
         relevant_scrims.sort(key=lambda s: s.scrim.time)
+
+        relevant_scrims = relevant_scrims[:10]
 
         bot: discord.Bot = self.guild.bot
 
