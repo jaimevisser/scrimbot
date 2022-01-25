@@ -27,7 +27,10 @@ for g in config.guilds:
 
 async def init():
     for guild in guilds.values():
-        await guild.init()
+        try:
+            await guild.init()
+        except:
+            logging.error(f"Unable to properly initialise guild {guild.id}")
 
 
 def is_mod():
@@ -243,7 +246,7 @@ async def scrim(
 
     await guild.create_scrim(scrim_data)
 
-    await ctx.respond(f"Scrim created for {tag.time(scrim_time)} (your local time)", ephemeral=True)
+    await ctx.edit_message(f"Scrim created for {tag.time(scrim_time)} (your local time)")
 
 
 @bot.slash_command(name="active-scrims", guild_ids=config.guilds)

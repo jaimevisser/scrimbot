@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 import os
 
 import discord
@@ -29,7 +30,10 @@ class Guild:
         self.guildobj = await self.bot.fetch_guild(int(self.id))
 
         for scrim in self.scrims:
-            await scrim.init()
+            try:
+                await scrim.init()
+            except:
+                logging.error(f"Unable to properly initialise scrim {scrim.id}")
 
         self.__broadcast_channels = \
             set(s["broadcast_channel"] for s in self.config["scrim_channels"].values() if "broadcast_channel" in s)
