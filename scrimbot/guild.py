@@ -31,21 +31,31 @@ class Guild:
             self.mod_roles = self.mod_roles.union(set(self.config["mod_roles"]))
 
     async def init(self):
-        self.mod_channel = await self.bot.fetch_channel(self.config["mod_channel"])
         self.guildobj = await self.bot.fetch_guild(int(self.id))
+        self.mod_channel = await self.fetch_mod_channel()
 
         scrims = self.scrims.copy()
         for scrim in scrims:
             try:
                 await scrim.init()
-            except:
-                logging.error(f"Unable to properly initialise scrim {scrim.id}")
+            except Exception as error:
+                logging.error(f"Unable to properly initialise scrim {scrim.id} due to {error}")
 
         self.__broadcast_channels = \
             set(s["broadcast_channel"] for s in self.config["scrim_channels"].values() if "broadcast_channel" in s)
 
         for b in self.__broadcast_channels:
             self.broadcasts.append(scrimbot.Broadcaster(b, self))
+
+    async def fetch_mod_channel(self):
+        if self.mod_channel is None:
+            self.mod_channel = self.bot.get_channel(self.config["mod_channel"])
+        if self.mod_channel is None:
+            try:
+                self.mod_channel = await self.bot.fetch_channel(self.config["mod_channel"])
+            except discord.DiscordException as error:
+                logging.error(f"Unable to properly load mod channel for guild {self.id} due to {error}")
+        return self.mod_channel
 
     def __load_list(self, name: str) -> list:
         try:
@@ -69,8 +79,10 @@ class Guild:
         return scrim
 
     def __remove_scrim(self, scrim):
-        self.scrims.remove(scrim)
-        self.__scrims.remove(scrim.scrim.data)
+        if scrim in self.scrims:
+            self.scrims.remove(scrim)
+        if scrim.scrim.data in self.__scrims:
+            self.__scrims.remove(scrim.scrim.data)
         self.__sync_scrims()
 
     def __sync_scrims(self):

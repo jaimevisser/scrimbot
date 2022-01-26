@@ -29,8 +29,8 @@ async def init():
     for guild in guilds.values():
         try:
             await guild.init()
-        except:
-            logging.error(f"Unable to properly initialise guild {guild.id}")
+        except Exception as error:
+            logging.error(f"Unable to properly initialise guild {guild.id} due to {error}")
 
 
 def is_mod():
@@ -73,8 +73,8 @@ async def report(
         return
 
     guild.log.add_report(ctx.channel.id, name.id, ctx.author.id, text)
-    await guild.mod_channel.send(f"{ctx.author.mention} would like to report {name.mention} "
-                                 f"in {ctx.channel.mention} for the following:\n{text}")
+    await (await guild.fetch_mod_channel()).send(f"{ctx.author.mention} would like to report {name.mention} "
+                                                 f"in {ctx.channel.mention} for the following:\n{text}")
     await ctx.respond("Report sent", ephemeral=True)
 
 
@@ -89,7 +89,8 @@ async def note(
     guild = guilds[ctx.guild_id]
 
     guild.log.add_note(name.id, ctx.author.id, text)
-    await guild.mod_channel.send(f"User {name.mention} has had a note added by {ctx.author.mention}: {text}")
+    await (await guild.fetch_mod_channel()) \
+        .send(f"User {name.mention} has had a note added by {ctx.author.mention}: {text}")
     await ctx.respond("Note added", ephemeral=True)
 
 
@@ -112,8 +113,9 @@ async def warn(
     except discord.HTTPException:
         message = "Warning logged but couldn't send the user the warning"
 
-    await guild.mod_channel.send(f"User {name.mention} has been warned by {ctx.author.mention}: {text}\n"
-                                 f"Their warning count is now at {warn_count}")
+    await (await guild.fetch_mod_channel()).send(
+        f"User {name.mention} has been warned by {ctx.author.mention}: {text}\n"
+        f"Their warning count is now at {warn_count}")
     await ctx.respond(message, ephemeral=True)
 
 
@@ -146,7 +148,7 @@ async def purgelog(
     num_removed = guild.log.remove(predicate=lambda entry: entry["user"] == name.id)
 
     if num_removed > 0:
-        await guild.mod_channel.send(f"{ctx.author.mention} purged the log of {name.mention}.")
+        await (await guild.fetch_mod_channel()).send(f"{ctx.author.mention} purged the log of {name.mention}.")
         await ctx.respond("Matching entries removed", ephemeral=True)
     else:
         await ctx.respond("No matching entries found", ephemeral=True)
@@ -163,7 +165,7 @@ async def log(
     types = None
     authors = False
 
-    if ctx.channel.id == guild.mod_channel.id:
+    if ctx.channel.id == (await guild.fetch_mod_channel()).id:
         types = scrimbot.Log.ALL
         authors = True
 
@@ -247,7 +249,7 @@ async def scrim(
 
     await guild.create_scrim(scrim_data)
 
-    await ctx.edit_message(f"Scrim created for {tag.time(scrim_time)} (your local time)")
+    await ctx.respond(f"Scrim created for {tag.time(scrim_time)} (your local time)")
 
 
 @bot.slash_command(name="active-scrims", guild_ids=config.guilds)
