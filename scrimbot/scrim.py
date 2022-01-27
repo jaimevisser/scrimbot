@@ -100,7 +100,7 @@ class Scrim:
         if self.num_players() > 0:
             count = f"**({self.num_players()}/{self.size})** "
 
-        return f"{tag.role(self.role)}! Scrim at {tag.time(self.time)} {count}" \
+        return f"{tag.role(self.role)}! Scrim at {self.scrim_time()} {count}" \
                f"started by {tag.user(self.author['id'])}\n"
 
     def generate_broadcast_listing(self) -> str:
@@ -195,3 +195,8 @@ class Scrim:
                        f"We need at least {shortage} player(s)."
 
         return message
+
+    def scrim_time(self, separator = " / "):
+        s = self.time.strftime("%H:%M")
+        l = tag.time(self.time)
+        return f"{s} (server){separator}{l} (your local time)"

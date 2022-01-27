@@ -71,10 +71,10 @@ class ScrimManager:
         self.guild.queue_task(self.guild.update_broadcast())
 
     def create_rich_embed(self) -> discord.Embed:
-        embed = discord.Embed(title=f"Mixed scrim at {tag.time(self.scrim.time)} (local time)",
+        embed = discord.Embed(title=f"Mixed scrim",
+                              description=self.scrim.scrim_time(separator='\n'),
                               type="rich",
                               colour=discord.Colour.green(),
-                              timestamp=self.scrim.time,
                               url=self.url)
         player_list = self.scrim.generate_player_list() if self.scrim.num_players() > 0 else "no signups yet"
 
@@ -94,10 +94,10 @@ class ScrimManager:
 
     def create_link_embed(self):
         full = " **FULL**" if self.scrim.full else ""
-        embed = discord.Embed(title=f"Mixed scrim at {tag.time(self.scrim.time)} (local time){full}",
+        embed = discord.Embed(title=f"Mixed scrim {full}",
+                              description=self.scrim.scrim_time(separator='\n'),
                               type="rich",
                               colour=discord.Colour.green(),
-                              timestamp=self.scrim.time,
                               url=self.url)
         author = self.scrim.author
         embed.set_author(name=author["name"], icon_url=author["avatar"])

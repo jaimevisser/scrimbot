@@ -274,4 +274,19 @@ async def active_scrims(
     await ctx.respond(embeds=embeds, ephemeral=True)
 
 
+@bot.slash_command(guild_ids=config.guilds)
+async def time(ctx):
+    """Show server time"""
+    guild = guilds[ctx.guild_id]
+
+    server_time = datetime.now(guild.timezone)
+
+    await ctx.respond(f"**Server timezone**\n"
+                      f"{guild.config['timezone']}\n"
+                      f"**Server time**\n"
+                      f"{server_time.strftime('%H:%M')}\n"
+                      f"**Discord time tag**\n"
+                      f"{tag.time(server_time)}", ephemeral=True)
+
+
 bot.run(config.token)
