@@ -18,11 +18,13 @@ class Guild:
         self.__log = self.__load_list("log")
         self.__scrims = self.__load_list("scrims")
         self.log = scrimbot.Log(self.__log, lambda: self.__sync(self.__log, "log"))
-        self.mod_channel = None
+        self.mod_channel: discord.TextChannel = None
         self.timezone = pytz.timezone(self.config["timezone"])
         self.scrims = []
         self.broadcasts: list[scrimbot.Broadcaster] = []
         self.mod_roles = set()
+        self.invite: discord.Invite = None
+        self.__invite_channel: discord.TextChannel = None
         for scrim in self.__scrims:
             self.__create_scrim(scrim)
         if "mod_role" in self.config:
@@ -56,6 +58,18 @@ class Guild:
             except discord.DiscordException as error:
                 logging.error(f"Unable to properly load mod channel for guild {self.id} due to {error}")
         return self.mod_channel
+
+    async def fetch_invite(self):
+
+
+    async def __fetch_invite_channel(self):
+        if self.__invite_channel is None and "invite_channel" in self.config:
+            self.__invite_channel = self.bot.get_channel(self.config["invite_channel"])
+        if self.__invite_channel is None and "invite_channel" in self.config:
+            try:
+                self.mod_channel = await self.bot.fetch_channel(self.config["mod_channel"])
+            except discord.DiscordException as error:
+                logging.error(f"Unable to properly load invite channel for guild {self.id} due to {error}")
 
     def __load_list(self, name: str) -> list:
         try:
