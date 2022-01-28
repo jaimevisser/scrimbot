@@ -19,7 +19,7 @@ class Broadcaster:
         self.__edits = 0
         self.__start_time = datetime.now(timezone.utc)
         self.__edit_log: list[datetime] = []
-        self.__content_hashes: set[str] = set()
+        self.__content_hashes: set[str] = set("START")
 
     def __can_update(self):
         now = datetime.now(timezone.utc)
@@ -66,12 +66,10 @@ class Broadcaster:
 
         if new_content_hashes == self.__content_hashes:
             return
-        self.__content_hashes = new_content_hashes
-
-        embeds = list([s.create_link_embed() for s in relevant_scrims])
 
         if not self.__can_update():
             if self.__update_task is None:
+                logging.debug(f"Updating broadcast for {self.channel} postponed")
                 self.__update_task = self.guild.queue_task(self.__delayed_update())
             return
 
@@ -86,16 +84,25 @@ class Broadcaster:
 
         content = "\n".join(content)
 
+        self.__content_hashes = new_content_hashes
+        embeds = list([s.create_link_embed() for s in relevant_scrims])
+
         logging.debug(f"Updating broadcast {self.channel}")
         if self.__edits >= 3 or self.__message is None:
             if self.__message is not None:
-                await self.__message.delete()
+                try:
+                    await self.__message.delete()
+                except discord.NotFound:
+                    self.__message = None
             self.__message = await self.__channel.send(content=content, embeds=embeds)
             await self.__message.publish()
             self.__edits = 0
         else:
-            await self.__message.edit(content=content, embeds=embeds)
-            self.__edits += 1
+            try:
+                await self.__message.edit(content=content, embeds=embeds)
+                self.__edits += 1
+            except discord.NotFound:
+                self.__message = None
 
         self.__edit_log.append(datetime.now(timezone.utc))
         self.__prune_editlog()

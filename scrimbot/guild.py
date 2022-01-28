@@ -43,11 +43,14 @@ class Guild:
             except Exception as error:
                 logging.error(f"Unable to properly initialise scrim {scrim.id} due to {error}")
 
-        self.__broadcast_channels = \
+        broadcast_channels = \
             set(s["broadcast_channel"] for s in self.config["scrim_channels"].values() if "broadcast_channel" in s)
 
-        for b in self.__broadcast_channels:
+        for b in broadcast_channels:
             self.broadcasts.append(scrimbot.Broadcaster(b, self))
+
+        for b in self.broadcasts:
+            self.queue_task(b.update())
 
     async def fetch_mod_channel(self):
         if self.mod_channel is None:

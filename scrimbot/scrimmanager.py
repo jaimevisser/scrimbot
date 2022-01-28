@@ -23,9 +23,13 @@ class ScrimManager:
         self.id = self.scrim.id
         self.url = ""
 
+        self.__view: discord.ui.View = None
+        self.__thread: discord.Thread = None
+        self.__start_message: discord.Message = None
+        self.__content_message: discord.Message = None
+
     async def init(self):
         self.__view = scrimbot.ScrimView(self)
-
         self.__thread = await self.guild.bot.fetch_channel(self.id)
 
         scrim_channel = self.__thread.parent
@@ -34,10 +38,17 @@ class ScrimManager:
         self.broadcast = scrim_channel_settings["broadcast_channel"] \
             if "broadcast_channel" in scrim_channel_settings else 0
 
-        self.__startmessage = await scrim_channel.fetch_message(self.id)
-        self.__contentmessage = await self.__thread.fetch_message(self.scrim.data["message"])
+        try:
+            self.__start_message = await scrim_channel.fetch_message(self.id)
+        except discord.DiscordException:
+            pass
 
-        self.url = f"https://discordapp.com/channels/{self.guild.id}/{self.id}/{self.__contentmessage.id}"
+        try:
+            self.__content_message = await self.__thread.fetch_message(self.scrim.data["message"])
+        except discord.DiscordException:
+            pass
+
+        self.url = f"https://discordapp.com/channels/{self.guild.id}/{self.id}/{self.__content_message.id}"
 
         self.guild.queue_task(self.__start_scrim())
         self.guild.queue_task(self.update())
@@ -62,8 +73,8 @@ class ScrimManager:
             else:
                 self.__view = None
 
-        await self.__contentmessage.edit(content="", embeds=[self.create_rich_embed()], view=self.__view)
-        await self.__startmessage.edit(content=self.scrim.generate_header_message())
+        await self.__content_message.edit(content="", embeds=[self.create_rich_embed()], view=self.__view)
+        await self.__start_message.edit(content=self.scrim.generate_header_message())
 
         if self.scrim.time < datetime.now(self.guild.timezone) - timedelta(hours=2):
             await self.__thread.edit(archived=True)
@@ -170,7 +181,7 @@ class ScrimManager:
             self.scrim.data["started"] = True
             self.__sync()
 
-        await self.update()
+        self.guild.queue_task(self.update())
 
         if self.scrim.num_players() == 0:
             await self.__thread.edit(archived=True)
@@ -181,7 +192,7 @@ class ScrimManager:
             seconds = math.floor((archive_time - now).total_seconds())
             await asyncio.sleep(seconds)
 
-        await self.update()
+        self.guild.queue_task(self.update())
 
 
 def user_dict(user: discord.Member) -> dict:
