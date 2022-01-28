@@ -60,16 +60,21 @@ class Guild:
         return self.mod_channel
 
     async def fetch_invite(self):
-
+        if self.__invite_channel is None:
+            await self.__fetch_invite_channel()
+        if self.__invite_channel is not None:
+            invite = await self.__invite_channel.create_invite(max_uses=0, max_age=0)
+            return invite
 
     async def __fetch_invite_channel(self):
         if self.__invite_channel is None and "invite_channel" in self.config:
             self.__invite_channel = self.bot.get_channel(self.config["invite_channel"])
         if self.__invite_channel is None and "invite_channel" in self.config:
             try:
-                self.mod_channel = await self.bot.fetch_channel(self.config["mod_channel"])
+                self.__invite_channel = await self.bot.fetch_channel(self.config["invite_channel"])
             except discord.DiscordException as error:
                 logging.error(f"Unable to properly load invite channel for guild {self.id} due to {error}")
+        return self.__invite_channel
 
     def __load_list(self, name: str) -> list:
         try:

@@ -1,11 +1,9 @@
 import asyncio
 import logging
 from datetime import datetime, timezone, timedelta
-from logging import Logger
 
 import discord
 
-import scrimbot.tag
 from scrimbot import ScrimManager
 
 
@@ -16,6 +14,7 @@ class Broadcaster:
         self.guild = guild
         self.__channel: discord.abc.GuildChannel = None
         self.__message: discord.abc.TextChannel = None
+        self.__invite: discord.Invite = None
         self.__update_task: asyncio.Task = None
         self.__edits = 0
         self.__start_time = datetime.now(timezone.utc)
@@ -71,12 +70,21 @@ class Broadcaster:
 
         embeds = list([s.create_link_embed() for s in relevant_scrims])
 
-        content = "No scrims planned at the moment." if len(relevant_scrims) == 0 else ""
-
         if not self.__can_update():
             if self.__update_task is None:
                 self.__update_task = self.guild.queue_task(self.__delayed_update())
             return
+
+        if self.__invite is None:
+            self.__invite = await self.guild.fetch_invite()
+
+        content = []
+        if self.__invite is not None:
+            content.append(self.__invite.url)
+        if len(relevant_scrims) == 0:
+            content.append("No scrims planned at the moment.")
+
+        content = "\n".join(content)
 
         logging.debug(f"Updating broadcast {self.channel}")
         if self.__edits >= 3 or self.__message is None:
