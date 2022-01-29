@@ -2,6 +2,7 @@ import asyncio
 import json
 import logging
 import os
+from typing import Optional
 
 import discord
 import pytz
@@ -18,13 +19,13 @@ class Guild:
         self.__log = self.__load_list("log")
         self.__scrims = self.__load_list("scrims")
         self.log = scrimbot.Log(self.__log, lambda: self.__sync(self.__log, "log"))
-        self.mod_channel: discord.TextChannel = None
+        self.mod_channel: Optional[discord.TextChannel] = None
         self.timezone = pytz.timezone(self.config["timezone"])
         self.scrims = []
         self.broadcasts: list[scrimbot.Broadcaster] = []
         self.mod_roles = set()
-        self.invite: discord.Invite = None
-        self.__invite_channel: discord.TextChannel = None
+        self.invite: Optional[discord.Invite] = None
+        self.__invite_channel: Optional[discord.TextChannel] = None
         for scrim in self.__scrims:
             self.__create_scrim(scrim)
         if "mod_role" in self.config:
@@ -66,8 +67,11 @@ class Guild:
         if self.__invite_channel is None:
             await self.__fetch_invite_channel()
         if self.__invite_channel is not None:
-            invite = await self.__invite_channel.create_invite(max_uses=0, max_age=0)
-            return invite
+            try:
+                invite = await self.__invite_channel.create_invite(max_uses=0, max_age=0)
+                return invite
+            except discord.DiscordException as error:
+                logging.error(f"Unable create an invite for channel {self.__invite_channel.id} due to {error}")
 
     async def __fetch_invite_channel(self):
         if self.__invite_channel is None and "invite_channel" in self.config:

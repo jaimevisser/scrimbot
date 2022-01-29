@@ -1,6 +1,7 @@
 import asyncio
 import math
 from datetime import datetime, timedelta
+from typing import Optional
 
 import discord
 from discord import Color
@@ -23,10 +24,10 @@ class ScrimManager:
         self.id = self.scrim.id
         self.url = ""
 
-        self.__view: discord.ui.View = None
-        self.__thread: discord.Thread = None
-        self.__start_message: discord.Message = None
-        self.__content_message: discord.Message = None
+        self.__view: Optional[discord.ui.View] = None
+        self.__thread: Optional[discord.Thread] = None
+        self.__start_message: Optional[discord.Message] = None
+        self.__content_message: Optional[discord.Message] = None
 
     async def init(self):
         self.__view = scrimbot.ScrimView(self)
@@ -48,7 +49,7 @@ class ScrimManager:
         except discord.DiscordException:
             pass
 
-        self.url = f"https://discordapp.com/channels/{self.guild.id}/{self.id}/{self.__content_message.id}"
+        self.url = self.__content_message.jump_url
 
         self.guild.queue_task(self.__start_scrim())
         self.guild.queue_task(self.update())
@@ -79,6 +80,12 @@ class ScrimManager:
         if self.scrim.time < datetime.now(self.guild.timezone) - timedelta(hours=2):
             await self.__thread.edit(archived=True)
 
+        self.guild.queue_task(self.guild.update_broadcast())
+
+    async def __end(self):
+        if self.__thread is not None and not self.__thread.archived:
+            await self.__thread.edit(archived=True)
+        self.__remove(self)
         self.guild.queue_task(self.guild.update_broadcast())
 
     def create_rich_embed(self) -> discord.Embed:

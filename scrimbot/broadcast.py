@@ -1,6 +1,7 @@
 import asyncio
 import logging
 from datetime import datetime, timezone, timedelta
+from typing import Optional
 
 import discord
 
@@ -12,10 +13,10 @@ class Broadcaster:
     def __init__(self, channel, guild):
         self.channel = channel
         self.guild = guild
-        self.__channel: discord.abc.GuildChannel = None
-        self.__message: discord.abc.TextChannel = None
-        self.__invite: discord.Invite = None
-        self.__update_task: asyncio.Task = None
+        self.__channel: Optional[discord.abc.GuildChannel] = None
+        self.__message: Optional[discord.abc.TextChannel] = None
+        self.__invite: Optional[discord.Invite] = None
+        self.__update_task: Optional[asyncio.Task] = None
         self.__edits = 0
         self.__start_time = datetime.now(timezone.utc)
         self.__edit_log: list[datetime] = []
