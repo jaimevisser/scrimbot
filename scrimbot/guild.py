@@ -127,7 +127,8 @@ class Guild:
     async def create_scrim(self, data: dict):
         self.__scrims.append(data)
         self.__sync_scrims()
-        await (self.__create_scrim(data)).init()
+        scrim = self.__create_scrim(data)
+        self.queue_task(scrim.init())
 
     def is_on_timeout(self, user: discord.Member) -> bool:
         for r in user.roles:
