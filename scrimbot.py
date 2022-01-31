@@ -289,4 +289,23 @@ async def time(ctx):
                       f"{tag.time(server_time)}", ephemeral=True)
 
 
+@bot.slash_command(name="archive-scrim", guild_ids=config.guilds)
+@is_mod()
+async def archive_scrim(
+        ctx
+):
+    """Archive an open scrim thread"""
+    guild = guilds[ctx.guild_id]
+
+    if not isinstance(ctx.channel, discord.Thread):
+        await ctx.respond("This isn't a thread", ephemeral=True)
+        return
+
+    if str(ctx.channel.parent_id) not in guild.config["scrim_channels"].keys():
+        await ctx.respond("This isn't a thread in a scrim channel", ephemeral=True)
+        return
+
+    guild.queue_task(ctx.channel.archive())
+    await ctx.respond("Scrim thread will be archived in a short while", ephemeral=True)
+
 bot.run(config.token)
