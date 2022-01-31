@@ -5,8 +5,8 @@ from datetime import datetime, timedelta, timezone
 from typing import Callable
 
 import discord
+from discord import CommandPermission
 from discord.commands import Option
-from discord.commands.permissions import Permission
 from discord.enums import SlashCommandOptionType, ChannelType
 
 import scrimbot
@@ -43,7 +43,7 @@ def is_mod():
 
         for guild in guilds.values():
             for role in guild.mod_roles:
-                func.__app_cmd_perms__.append(Permission(int(role), 1, True, int(guild.id)))
+                func.__app_cmd_perms__.append(CommandPermission(int(role), 1, True, int(guild.id)))
 
         return func
 

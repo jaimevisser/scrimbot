@@ -2,6 +2,7 @@ import asyncio
 import json
 import logging
 import os
+from datetime import datetime, timezone
 from typing import Optional
 
 import discord
@@ -64,14 +65,23 @@ class Guild:
         return self.mod_channel
 
     async def fetch_invite(self):
+        vanity = await self.__fetch_vanity_invite()
+        if vanity is not None:
+            return vanity
         if self.__invite_channel is None:
             await self.__fetch_invite_channel()
         if self.__invite_channel is not None:
             try:
-                invite = await self.__invite_channel.create_invite(max_uses=0, max_age=0)
+                invite = await self.__invite_channel.create_invite(max_uses=0, max_age=0, unique=False)
                 return invite
             except discord.DiscordException as error:
                 logging.error(f"Unable create an invite for channel {self.__invite_channel.id} due to {error}")
+
+    async def __fetch_vanity_invite(self):
+        try:
+            return await self.guildobj.vanity_invite()
+        except discord.DiscordException as error:
+            logging.error(f"Unable to fetch vanity invite due to {error}")
 
     async def __fetch_invite_channel(self):
         if self.__invite_channel is None and "invite_channel" in self.config:
