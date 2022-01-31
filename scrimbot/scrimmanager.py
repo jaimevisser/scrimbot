@@ -4,10 +4,9 @@ from datetime import datetime, timedelta
 from typing import Optional
 
 import discord
-from discord import Color
 
 import scrimbot
-from scrimbot import tag
+from scrimbot import DiscordProxy
 from scrimbot.scrim import Scrim
 
 
@@ -25,42 +24,41 @@ class ScrimManager:
         self.url = ""
 
         self.__view: Optional[discord.ui.View] = None
-        self.__thread: Optional[discord.Thread] = None
-        self.__start_message: Optional[discord.Message] = None
-        self.__content_message: Optional[discord.Message] = None
+
+        async def fetch_thread() -> discord.Thread:
+            return await self.guild.bot.fetch_channel(self.id)
+
+        self.__thread: DiscordProxy[discord.Thread] = DiscordProxy(fetcher=fetch_thread,
+                                                                   on_fetch=self.on_thread_fetched)
+        self.__start_message: DiscordProxy[discord.Message] = DiscordProxy()
+        self.__content_message: DiscordProxy[discord.Message] = DiscordProxy(on_fetch=self.on_content_message_fetched)
 
     async def init(self):
         self.__view = scrimbot.ScrimView(self)
-        self.__thread = await self.guild.bot.fetch_channel(self.id)
+        await self.__thread.fetch()
 
-        scrim_channel = self.__thread.parent
+        self.guild.queue_task(self.__start_scrim())
+        self.guild.queue_task(self.update())
+
+    async def on_thread_fetched(self, thread: discord.Thread):
+        scrim_channel: discord.TextChannel = thread.parent
         scrim_channel_settings = self.guild.scrim_channel_config(scrim_channel.id)
 
         self.broadcast = scrim_channel_settings["broadcast_channel"] \
             if "broadcast_channel" in scrim_channel_settings else 0
 
-        try:
-            self.__start_message = await scrim_channel.fetch_message(self.id)
-        except discord.DiscordException:
-            pass
+        await self.__start_message.fetch(lambda: scrim_channel.fetch_message(self.id))
+        await self.__content_message.fetch(lambda: thread.fetch_message(self.scrim.data["message"]))
 
-        try:
-            self.__content_message = await self.__thread.fetch_message(self.scrim.data["message"])
-        except discord.DiscordException:
-            pass
-
-        self.url = self.__content_message.jump_url
-
-        self.guild.queue_task(self.__start_scrim())
-        self.guild.queue_task(self.update())
+    async def on_content_message_fetched(self, message: discord.Message):
+        self.url = message.jump_url
 
     def generate_broadcast_listing(self) -> str:
         return self.scrim.generate_broadcast_listing() + "\n" + self.url
 
     async def update(self):
-        if self.__thread.archived:
-            self.__remove(self)
-            self.guild.queue_task(self.guild.update_broadcast())
+        if await self.__thread.fetch() and self.__thread.content.archived:
+            await self.__end()
             return
 
         if self.scrim.time < datetime.now(self.guild.timezone) - timedelta(hours=2):
@@ -74,17 +72,17 @@ class ScrimManager:
             else:
                 self.__view = None
 
-        await self.__content_message.edit(content="", embeds=[self.create_rich_embed()], view=self.__view)
-        await self.__start_message.edit(content=self.scrim.generate_header_message())
+        await self.__content_message.wait(lambda m:
+                                          m.edit(content="", embeds=[self.create_rich_embed()], view=self.__view))
+        await self.__start_message.wait(lambda m: m.edit(content=self.scrim.generate_header_message()))
 
         if self.scrim.time < datetime.now(self.guild.timezone) - timedelta(hours=2):
-            await self.__thread.edit(archived=True)
+            await self.__end()
 
         self.guild.queue_task(self.guild.update_broadcast())
 
     async def __end(self):
-        if self.__thread is not None and not self.__thread.archived:
-            await self.__thread.edit(archived=True)
+        await self.__thread.wait(lambda t: t.edit(archived=True))
         self.__remove(self)
         self.guild.queue_task(self.guild.update_broadcast())
 
@@ -125,7 +123,7 @@ class ScrimManager:
         if self.guild.is_on_timeout(user):
             return "Sorry buddy, you are on a timeout!"
 
-        await self.__thread.add_user(user)
+        await self.__thread.wait(lambda t: t.add_user(user))
         if not self.scrim.full:
             if not self.scrim.contains_player(user.id):
                 self.scrim.add_player(user_dict(user))
@@ -144,7 +142,7 @@ class ScrimManager:
         if self.guild.is_on_timeout(user):
             return "Sorry buddy, you are on a timeout!"
 
-        await self.__thread.add_user(user)
+        await self.__thread.wait(lambda t: t.add_user(user))
         if not self.scrim.contains_reserve(user.id):
             self.scrim.add_reserve(user_dict(user))
             await self.update()
@@ -183,15 +181,14 @@ class ScrimManager:
             await asyncio.sleep(seconds)
 
         if "started" not in self.scrim.data:
-            if not self.__thread.archived:
-                await self.__thread.send(self.scrim.generate_start_message())
+            await self.__thread.wait(lambda t: t.send(self.scrim.generate_start_message()))
             self.scrim.data["started"] = True
             self.__sync()
 
         self.guild.queue_task(self.update())
 
         if self.scrim.num_players() == 0:
-            await self.__thread.edit(archived=True)
+            await self.__thread.wait(lambda t: t.edit(archived=True))
 
         now = datetime.now(self.guild.timezone)
         archive_time = self.scrim.time + timedelta(hours=2, minutes=5)

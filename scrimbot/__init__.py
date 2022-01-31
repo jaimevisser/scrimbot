@@ -1,3 +1,4 @@
+from scrimbot.discordProxy import DiscordProxy
 from scrimbot.guild import Guild
 from scrimbot.scrimmanager import ScrimManager
 from scrimbot.scrim import Scrim

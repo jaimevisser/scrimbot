@@ -96,8 +96,11 @@ class Broadcaster:
                 except discord.NotFound:
                     self.__message = None
             self.__message = await self.__channel.send(content=content, embeds=embeds)
-            await self.__message.publish()
             self.__edits = 0
+            try:
+                await self.__message.publish()
+            except discord.DiscordException:
+                pass
         else:
             try:
                 await self.__message.edit(content=content, embeds=embeds)
