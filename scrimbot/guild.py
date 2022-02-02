@@ -24,6 +24,7 @@ class Guild:
         self.log = scrimbot.Log(self.__log, lambda: self.__sync(self.__log, "log"))
         self.mod_channel: Optional[discord.TextChannel] = None
         self.timezone = pytz.timezone(self.config["timezone"])
+        self.timezone_name = self.config["timezone"]
         self.scrims = []
         self.broadcasts: list[scrimbot.Broadcaster] = []
         self.mod_roles = set()

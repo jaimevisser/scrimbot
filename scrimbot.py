@@ -248,7 +248,7 @@ async def scrim(
 
     scrim = Scrim(scrim_data, guild.timezone, None)
 
-    message = await ctx.channel.send(scrim.generate_header_message())
+    message = await ctx.channel.send(scrim.generate_header_message(timezone=guild.timezone_name))
 
     thread = await ctx.channel.create_thread(message=message, name=f"{scrim_hour}.{scrim_minute}",
                                              type=ChannelType.public_thread)

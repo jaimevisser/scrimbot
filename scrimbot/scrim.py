@@ -95,12 +95,12 @@ class Scrim:
             self.data[playerlist].remove(player)
             self.__sync()
 
-    def generate_header_message(self) -> str:
+    def generate_header_message(self, timezone) -> str:
         count = ""
         if self.num_players() > 0:
             count = f"**({self.num_players()}/{self.size})** "
 
-        return f"{tag.role(self.role)}! Scrim at {self.scrim_time()} {count}" \
+        return f"{tag.role(self.role)}! Scrim at {self.scrim_time(timezone=timezone)} {count}" \
                f"started by {tag.user(self.author['id'])}\n"
 
     def generate_broadcast_listing(self) -> str:
@@ -196,7 +196,8 @@ class Scrim:
 
         return message
 
-    def scrim_time(self, separator = " / "):
+    def scrim_time(self, separator=" / ", timezone=None):
         s = self.time.strftime("%H:%M")
         l = tag.time(self.time)
-        return f"{s} (server){separator}{l} (your local time)"
+        timezone = "server" if timezone is None else timezone
+        return f"{s} ({timezone}){separator}{l} (your local time)"

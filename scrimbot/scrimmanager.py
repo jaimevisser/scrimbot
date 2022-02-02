@@ -72,9 +72,10 @@ class ScrimManager:
             else:
                 self.__view = None
 
-        await self.__content_message.wait(lambda m:
-                                          m.edit(content="", embeds=[self.create_rich_embed()], view=self.__view))
-        await self.__start_message.wait(lambda m: m.edit(content=self.scrim.generate_header_message()))
+        await self.__content_message.wait(
+            lambda m: m.edit(content="", embeds=[self.create_rich_embed()], view=self.__view))
+        await self.__start_message.wait(
+            lambda m: m.edit(content=self.scrim.generate_header_message(timezone=self.guild.timezone_name)))
 
         if self.scrim.time < datetime.now(self.guild.timezone) - timedelta(hours=2):
             await self.__end()
@@ -91,7 +92,7 @@ class ScrimManager:
 
     def create_rich_embed(self) -> discord.Embed:
         embed = discord.Embed(title=f"Mixed scrim",
-                              description=self.scrim.scrim_time(separator='\n'),
+                              description=self.scrim.scrim_time(separator='\n', timezone=self.guild.timezone_name),
                               type="rich",
                               colour=discord.Colour.green(),
                               url=self.url)
@@ -114,7 +115,7 @@ class ScrimManager:
     def create_link_embed(self):
         full = " **FULL**" if self.scrim.full else ""
         embed = discord.Embed(title=f"Mixed scrim {full}",
-                              description=self.scrim.scrim_time(separator='\n'),
+                              description=self.scrim.scrim_time(separator='\n', timezone=self.guild.timezone_name),
                               type="rich",
                               colour=discord.Colour.green(),
                               url=self.url)
