@@ -2,7 +2,6 @@ import asyncio
 import json
 import logging
 import os
-from datetime import datetime, timezone
 from typing import Optional
 
 import discord
@@ -10,11 +9,14 @@ import pytz
 
 import scrimbot
 
+_log = logging.getLogger(__name__)
+
 
 class Guild:
 
     def __init__(self, id: str, config: dict, bot: discord.Bot):
         self.id = str(id)
+        self.name = str(id)
         self.config = config
         self.bot: discord.Bot = bot
         self.__log = self.__load_list("log")
@@ -33,17 +35,22 @@ class Guild:
             self.mod_roles = self.mod_roles.union({self.config["mod_role"]})
         if "mod_roles" in self.config:
             self.mod_roles = self.mod_roles.union(set(self.config["mod_roles"]))
+        if "name" in self.config:
+            self.name += " - " + self.config["name"]
 
     async def init(self):
         self.guildobj = await self.bot.fetch_guild(int(self.id))
         self.mod_channel = await self.fetch_mod_channel()
+
+        if "name" not in self.config:
+            self.name += " - " + self.guildobj.name
 
         scrims = self.scrims.copy()
         for scrim in scrims:
             try:
                 await scrim.init()
             except Exception as error:
-                logging.error(f"Unable to properly initialise scrim {scrim.id} due to {error}")
+                _log.error(f"Unable to properly initialise scrim {scrim.id} due to {error}")
 
         broadcast_channels = \
             set(s["broadcast_channel"] for s in self.config["scrim_channels"].values() if "broadcast_channel" in s)
@@ -61,7 +68,7 @@ class Guild:
             try:
                 self.mod_channel = await self.bot.fetch_channel(self.config["mod_channel"])
             except discord.DiscordException as error:
-                logging.error(f"Unable to properly load mod channel for guild {self.id} due to {error}")
+                _log.error(f"{self.name}: Unable to properly load mod channel due to {error}")
         return self.mod_channel
 
     async def fetch_invite(self):
@@ -75,13 +82,14 @@ class Guild:
                 invite = await self.__invite_channel.create_invite(max_uses=0, max_age=0, unique=False)
                 return invite
             except discord.DiscordException as error:
-                logging.error(f"Unable create an invite for channel {self.__invite_channel.id} due to {error}")
+                _log.error(
+                    f"{self.name}: Unable create an invite for channel {self.__invite_channel.id} due to {error}")
 
     async def __fetch_vanity_invite(self):
         try:
             return await self.guildobj.vanity_invite()
         except discord.DiscordException as error:
-            logging.error(f"Unable to fetch vanity invite due to {error}")
+            _log.error(f"{self.name}: Unable to fetch vanity invite due to {error}")
 
     async def __fetch_invite_channel(self):
         if self.__invite_channel is None and "invite_channel" in self.config:
@@ -90,7 +98,7 @@ class Guild:
             try:
                 self.__invite_channel = await self.bot.fetch_channel(self.config["invite_channel"])
             except discord.DiscordException as error:
-                logging.error(f"Unable to properly load invite channel for guild {self.id} due to {error}")
+                _log.error(f"{self.name}: Unable to properly load invite channel due to {error}")
         return self.__invite_channel
 
     def __load_list(self, name: str) -> list:

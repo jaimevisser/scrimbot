@@ -1,4 +1,4 @@
-from typing import TypeVar, Generic, Callable, Optional, Coroutine, Any, NewType
+from typing import TypeVar, Generic, Callable, Optional, Coroutine, Any
 
 T = TypeVar('T')
 R = TypeVar('R')

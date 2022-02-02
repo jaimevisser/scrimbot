@@ -1,7 +1,9 @@
 import logging
 import math
+import os
 import re
 from datetime import datetime, timedelta, timezone
+from logging.handlers import RotatingFileHandler
 from typing import Callable
 
 import discord
@@ -12,7 +14,12 @@ from discord.enums import SlashCommandOptionType, ChannelType
 import scrimbot
 from scrimbot import tag, Scrim
 
-logging.basicConfig(level=logging.DEBUG)
+os.makedirs("data/logs", exist_ok=True)
+filehandler = RotatingFileHandler(filename="data/logs/scrimbot.log", mode="w", maxBytes=1024 * 50, backupCount=4)
+
+logging.basicConfig(level=logging.INFO,
+                    format="%(asctime)s - %(name)s - %(levelname)s:%(message)s",
+                    handlers=[filehandler])
 
 bot = discord.Bot()
 config = scrimbot.Config()
@@ -20,6 +27,8 @@ config = scrimbot.Config()
 guilds = {}
 
 bot.initialised = False
+
+_log = logging.getLogger("scrimbot")
 
 for g in config.guilds:
     guilds[g] = scrimbot.Guild(str(g), config.config[str(g)], bot)
@@ -30,7 +39,7 @@ async def init():
         try:
             await guild.init()
         except Exception as error:
-            logging.error(f"Unable to properly initialise guild {guild.id} due to {error}")
+            _log.error(f"Unable to properly initialise guild {guild.id} due to {error}")
 
 
 def is_mod():
@@ -56,7 +65,7 @@ async def on_ready():
         bot.initialised = True
         await init()
 
-        print("Bot initialised")
+        _log.info("Bot initialised")
 
 
 @bot.slash_command(guild_ids=config.guilds)
@@ -307,5 +316,6 @@ async def archive_scrim(
 
     guild.queue_task(ctx.channel.archive())
     await ctx.respond("Scrim thread will be archived in a short while", ephemeral=True)
+
 
 bot.run(config.token)

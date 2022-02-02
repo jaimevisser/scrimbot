@@ -7,6 +7,7 @@ import discord
 
 from scrimbot import ScrimManager
 
+_log = logging.getLogger(__name__)
 
 class Broadcaster:
 
@@ -70,7 +71,7 @@ class Broadcaster:
 
         if not self.__can_update():
             if self.__update_task is None:
-                logging.debug(f"Updating broadcast for {self.channel} postponed")
+                _log.info(f"Updating broadcast for {self.channel} postponed")
                 self.__update_task = self.guild.queue_task(self.__delayed_update())
             return
 
@@ -88,7 +89,7 @@ class Broadcaster:
         self.__content_hashes = new_content_hashes
         embeds = list([s.create_link_embed() for s in relevant_scrims])
 
-        logging.debug(f"Updating broadcast {self.channel}")
+        _log.info(f"Updating broadcast {self.channel}")
         if self.__edits >= 3 or self.__message is None:
             if self.__message is not None:
                 try:
