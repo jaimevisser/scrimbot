@@ -114,8 +114,10 @@ class Guild:
             return []
 
     def __sync(self, data: list, name: str):
-        with open(f"data/{self.id}-{name}.json", 'w') as jsonfile:
-            json.dump(data, jsonfile)
+        async def sync():
+            with open(f"data/{self.id}-{name}.json", 'w') as jsonfile:
+                json.dump(data, jsonfile)
+        self.queue_task(sync())
 
     def __create_scrim(self, data: dict):
         from scrimbot.scrimmanager import ScrimManager

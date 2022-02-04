@@ -253,7 +253,7 @@ async def scrim(
     thread = await ctx.channel.create_thread(message=message, name=f"{scrim_hour}.{scrim_minute}",
                                              type=ChannelType.public_thread)
     scrim_data["thread"] = thread.id
-    content = await thread.send(scrim.generate_content_message())
+    content = await thread.send("Loading scrim ...")
     scrim_data["message"] = content.id
 
     await guild.create_scrim(scrim_data)

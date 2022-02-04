@@ -53,9 +53,6 @@ class ScrimManager:
     async def on_content_message_fetched(self, message: discord.Message):
         self.url = message.jump_url
 
-    def generate_broadcast_listing(self) -> str:
-        return self.scrim.generate_broadcast_listing() + "\n" + self.url
-
     async def __update(self):
         if await self.__thread.fetch() and self.__thread.content.archived:
             await self.__end()
@@ -64,9 +61,9 @@ class ScrimManager:
         if self.scrim.time < datetime.now(self.guild.timezone) - timedelta(hours=2):
             self.__view = None
 
-        elif (self.scrim.time < datetime.now(self.guild.timezone) or "started" in self.scrim.data) and \
+        elif (self.scrim.time < datetime.now(self.guild.timezone) or self.scrim.started) and \
                 hasattr(self.__view, "use") and self.__view.use == "before":
-            if self.scrim.num_reserves() > 0 and self.scrim.num_players() > 0 and \
+            if self.scrim.num_reserves > 0 and self.scrim.num_players > 0 and \
                     self.scrim.get_next_reserve() is not None:
                 self.__view = scrimbot.ScrimRunningView(self)
             else:
@@ -80,7 +77,7 @@ class ScrimManager:
         if self.scrim.time < datetime.now(self.guild.timezone) - timedelta(hours=2):
             await self.__end()
 
-        if "started" in self.scrim.data and self.scrim.num_players() == 0:
+        if self.scrim.started and self.scrim.num_players == 0:
             await self.__end()
 
         self.guild.queue_task(self.guild.update_broadcast())
@@ -96,15 +93,15 @@ class ScrimManager:
                               type="rich",
                               colour=discord.Colour.green(),
                               url=self.url)
-        player_list = self.scrim.generate_player_list() if self.scrim.num_players() > 0 else "no signups yet"
+        player_list = self.scrim.generate_player_list() if self.scrim.num_players > 0 else "no signups yet"
 
-        embed.add_field(name=f"Players ({self.scrim.num_players()}/{self.scrim.size})",
+        embed.add_field(name=f"Players ({self.scrim.num_players}/{self.scrim.size})",
                         value=player_list,
                         inline=True)
 
-        reserve_list = self.scrim.generate_reserve_list() if self.scrim.num_reserves() > 0 else "no reserves"
+        reserve_list = self.scrim.generate_reserve_list() if self.scrim.num_reserves > 0 else "no reserves"
 
-        embed.add_field(name=f"Reserves ({self.scrim.num_reserves()})",
+        embed.add_field(name=f"Reserves ({self.scrim.num_reserves})",
                         value=reserve_list,
                         inline=True)
 
@@ -140,7 +137,7 @@ class ScrimManager:
             self.scrim.set_auto_join(user.id)
             self.guild.queue_task(self.__update())
             return "It's full, sorry! I put you on the reserve on auto-join, if a spot opens up the first reserve on " \
-                   "auto-join will get it. If you don't want auto-join just press the reserve button."
+                   "auto-join will get it. If you don't want auto-join just press the **reserve** button."
 
     async def reserve(self, user: discord.Member) -> str:
         if self.guild.is_on_timeout(user):
@@ -150,6 +147,10 @@ class ScrimManager:
         if not self.scrim.contains_reserve(user.id):
             self.scrim.add_reserve(user_dict(user))
             self.guild.queue_task(self.__update())
+            if self.scrim.full:
+                return "Put you on the reserve list, if you would like to join as soon as a spot opens up click " \
+                       "**join** to turn on auto-join. If a spot opens up the first reserve on auto-join will " \
+                       "get it. If you don't want auto-join just press the **reserve** button again."
             return "Put you on the reserve list."
         else:
             self.scrim.set_auto_join(user.id, False)
@@ -159,7 +160,6 @@ class ScrimManager:
     async def leave(self, user: discord.Member):
         self.scrim.remove_player(user.id)
         self.scrim.remove_reserve(user.id)
-        self.__sync()
         self.guild.queue_task(self.__update())
 
     async def call_reserve(self):
@@ -184,10 +184,12 @@ class ScrimManager:
             seconds = math.floor((self.scrim.time - now).total_seconds())
             await asyncio.sleep(seconds)
 
-        if "started" not in self.scrim.data:
-            await self.__thread.wait(lambda t: t.send(self.scrim.generate_start_message()))
-            self.scrim.data["started"] = True
-            self.__sync()
+        if not self.scrim.started:
+            thread_msg, channel_msg = self.scrim.generate_start_messages()
+            await self.__thread.wait(lambda t: t.send(thread_msg))
+            if channel_msg is not None:
+                await self.__start_message.wait(lambda s: s.reply(channel_msg))
+            self.scrim.started = True
 
         self.guild.queue_task(self.__update())
 

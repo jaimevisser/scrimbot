@@ -1,4 +1,5 @@
 from datetime import tzinfo, datetime
+from typing import Optional
 
 from scrimbot import tag
 
@@ -12,7 +13,6 @@ class Scrim:
         self.role = self.data["role"]
         self.author = self.data["author"]
         self.__sync = sync
-        self.full = False
 
         if "players" not in self.data:
             self.data["players"] = []
@@ -20,11 +20,30 @@ class Scrim:
         if "reserve" not in self.data:
             self.data["reserve"] = []
 
+    @property
     def num_players(self):
         return len(self.data["players"])
 
+    @property
     def num_reserves(self):
         return len(self.data["reserve"])
+
+    @property
+    def full(self) -> bool:
+        return self.size < self.num_players
+
+    @property
+    def started(self) -> bool:
+        return "started" in self.data
+
+    @started.setter
+    def started(self, started: bool):
+        if started and "started" not in self.data:
+            self.data["started"] = True
+            self.__sync()
+        elif not started and "started" in self.data:
+            del self.data["started"]
+            self.__sync()
 
     def get_next_reserve(self):
         for r in self.data["reserve"]:
@@ -43,13 +62,11 @@ class Scrim:
 
     def add_player(self, player):
         self.data["players"].append(player)
-        self.full = self.num_players() == self.size
         self.__sync()
         self.remove_reserve(player["id"])
 
     def remove_player(self, player_id):
         self.__remove_from_playerlist("players", player_id)
-        self.full = self.num_players() == self.size
         if not self.full:
             auto = None
             for r in self.data["reserve"]:
@@ -97,104 +114,56 @@ class Scrim:
 
     def generate_header_message(self, timezone) -> str:
         count = ""
-        if self.num_players() > 0:
-            count = f"**({self.num_players()}/{self.size})** "
+        if self.num_players > 0:
+            count = f"**({self.num_players}/{self.size})** "
 
         return f"{tag.role(self.role)}! Scrim at {self.scrim_time(timezone=timezone)} {count}" \
                f"started by {tag.user(self.author['id'])}\n"
 
-    def generate_broadcast_listing(self) -> str:
-        full = " **FULL**" if self.num_players() == self.size else ""
+    def generate_player_list(self, separator="\n") -> str:
+        return separator.join(map(lambda p: p['mention'], self.data["players"]))
 
-        return f"{tag.time(self.time)} Scrim{full}"
+    def generate_reserve_list(self, separator="\n") -> str:
+        def __map_reserve(reserve: dict):
+            if "auto" in reserve and not self.started:
+                return f"{reserve['mention']} (auto-join)"
+            if "called" in reserve:
+                return f"{reserve['mention']} (called)"
+            return reserve['mention']
 
-    def generate_player_list(self) -> str:
-        message = ""
-        for player in self.data["players"]:
-            message += f"{player['mention']}\n"
-        return message
+        return separator.join(map(__map_reserve, self.data["reserve"]))
 
-    def generate_reserve_list(self) -> str:
-        message = ""
-        for player in self.data["reserve"]:
-            extra = ""
-            if "auto" in player and "started" not in self.data:
-                extra = " (auto-join)"
-            if "called" in player:
-                extra = " (called)"
-            message += f"{player['mention']}{extra}\n"
-        return message
+    def generate_start_messages(self) -> tuple[str, Optional[str]]:
+        if self.num_players == 0:
+            return "Sad moment, nobody signed up! Archiving the thread.", None
 
-    def generate_content_message(self) -> str:
-        message = ""
-        if self.num_players() > 0:
-            players = self.num_players()
-            maxplayers = self.size
-            message += f"\n**Players ({players}/{maxplayers})**\n"
-            for player in self.data["players"]:
-                message += f"- {player['mention']}\n"
+        players = self.generate_player_list(separator=' ')
+        reserves = self.generate_reserve_list(separator=' ')
 
-        if self.num_reserves() > 0:
-            reserves = self.num_reserves()
-            message += f"\n**Reserves ({reserves})**\n"
-            for player in self.data["reserve"]:
-                extra = ""
-                if "auto" in player and "started" not in self.data:
-                    extra = "(auto-join)"
-                if "called" in player:
-                    extra = "(called)"
-                message += f"- {tag.user(player['id'])} {extra}\n"
-
-        if message == "":
-            message = "Nobody signed up yet."
-
-        return message
-
-    def generate_name(self) -> str:
-        players = self.num_players()
-
-        time = self.time.strftime("%H.%M")
-
-        return f"{time} {players}"
-
-    def generate_start_message(self) -> str:
-        if self.num_players() == 0:
-            return "Sad moment, nobody signed up! Archiving the thread."
-
-        players = ""
-        numplayers = self.num_players()
-        reserves = ""
-        numreserves = self.num_reserves()
-
-        for player in self.data["players"]:
-            players += f"{tag.user(player['id'])} "
-
-        for player in self.data["reserve"]:
-            reserves += f"{tag.user(player['id'])} "
-
-        if numplayers == self.size:
+        if self.full:
             return f"Scrim starting, get online!\n" \
-                   f"{players}"
+                   f"{players}", None
 
-        if numplayers + numreserves >= self.size:
+        if self.num_players + self.num_reserves >= self.size:
             return f"Scrim starting, get online!\n" \
                    f"{players}\n" \
                    f"Reserves, we need you!\n" \
-                   f"{reserves}"
+                   f"{reserves}", None
 
-        message = f"Not enough players, feel free to get online and try to get it started anyway!\n" \
-                  f"{players}\n"
+        thread_msg = f"Not enough players, feel free to get online and try to get it started anyway!\n" \
+                     f"{players}\n"
+        channel_msg = None
 
-        if numreserves > 0:
-            message += f"Reserves, feel free to join in.\n" \
-                       f"{reserves}"
+        if self.num_reserves > 0:
+            thread_msg += f"Reserves, feel free to join in.\n" \
+                          f"{reserves}"
 
-        shortage = self.size - numplayers + numreserves
+        shortage = self.size - self.num_players + self.num_reserves
         if shortage <= 2:
-            message += f"\n{tag.role(self.role)}, you might be able to make this a full scrim.\n" \
-                       f"We need at least {shortage} player(s)."
+            channel_msg = f"\n{tag.role(self.role)}, you might be able to make this a full scrim.\n" \
+                          f"We need at least {shortage} player(s)."
 
-        return message
+        return thread_msg, channel_msg
 
     def scrim_time(self, separator=" / ", timezone=None):
         s = self.time.strftime("%H:%M")

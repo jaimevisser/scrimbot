@@ -9,6 +9,7 @@ from scrimbot import ScrimManager
 
 _log = logging.getLogger(__name__)
 
+
 class Broadcaster:
 
     def __init__(self, channel, guild):
