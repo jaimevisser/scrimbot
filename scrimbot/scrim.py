@@ -7,11 +7,11 @@ from scrimbot import tag
 class Scrim:
     def __init__(self, data: dict, timezone: tzinfo, sync):
         self.data = data
-        self.id = data["thread"]
         self.size = 8
         self.time = datetime.fromtimestamp(data["time"], timezone)
-        self.role = self.data["role"]
+        self.timezone = timezone
         self.author = self.data["author"]
+        self.__settings: Optional[dict] = None
         self.__sync = sync
 
         if "players" not in self.data:
@@ -19,6 +19,10 @@ class Scrim:
 
         if "reserve" not in self.data:
             self.data["reserve"] = []
+
+    @property
+    def id(self):
+        return self.data["thread"]
 
     @property
     def num_players(self):
@@ -45,11 +49,30 @@ class Scrim:
             del self.data["started"]
             self.__sync()
 
+    @property
+    def settings(self):
+        return self.__settings
+
+    @settings.setter
+    def settings(self, settings: dict):
+        self.__settings = settings
+
+    @property
+    def __role(self):
+        return None if self.__settings is None or "role" not in self.__settings else tag.role(self.__settings["role"])
+
     def get_next_reserve(self):
         for r in self.data["reserve"]:
             if "called" not in r:
                 return r
         return None
+
+    def call_next_reserve(self):
+        r = self.get_next_reserve()
+        if r is not None:
+            r["called"] = True
+            self.__sync()
+        return r
 
     def contains_user(self, user: int) -> bool:
         return self.contains_player(user) or self.contains_reserve(user)
@@ -112,12 +135,13 @@ class Scrim:
             self.data[playerlist].remove(player)
             self.__sync()
 
-    def generate_header_message(self, timezone) -> str:
+    def generate_header_message(self) -> str:
         count = ""
         if self.num_players > 0:
             count = f"**({self.num_players}/{self.size})** "
 
-        return f"{tag.role(self.role)}! Scrim at {self.scrim_time(timezone=timezone)} {count}" \
+        role = f"{self.__role}! " if self.__role is not None else ""
+        return f"{role}Scrim at {self.scrim_time()} {count}" \
                f"started by {tag.user(self.author['id'])}\n"
 
     def generate_player_list(self, separator="\n") -> str:
@@ -160,13 +184,14 @@ class Scrim:
 
         shortage = self.size - self.num_players + self.num_reserves
         if shortage <= 2:
-            channel_msg = f"\n{tag.role(self.role)}, you might be able to make this a full scrim.\n" \
+            role = f"{self.__role}" if self.__role is not None else "Scrimmers"
+            channel_msg = f"{role}, you might be able to make this a full scrim.\n" \
                           f"We need at least {shortage} player(s)."
 
         return thread_msg, channel_msg
 
-    def scrim_time(self, separator=" / ", timezone=None):
+    def scrim_time(self, separator=" / "):
         s = self.time.strftime("%H:%M")
         l = tag.time(self.time)
-        timezone = "server" if timezone is None else timezone
+        timezone = "server" if self.timezone is None else self.timezone.zone
         return f"{s} ({timezone}){separator}{l} (your local time)"

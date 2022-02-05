@@ -7,17 +7,14 @@ import discord
 
 import scrimbot
 from scrimbot import DiscordProxy
-from scrimbot.scrim import Scrim
 
 
 class ScrimManager:
 
-    def __init__(self, guild: scrimbot.Guild, data: dict, sync, remove):
+    def __init__(self, guild: scrimbot.Guild, scrim: scrimbot.Scrim, remove):
         self.guild = guild
-        self.__sync = sync
-        self.scrim = Scrim(data, self.guild.timezone, sync)
+        self.scrim = scrim
         self.__remove = remove
-
         self.broadcast = 0
 
         self.id = self.scrim.id
@@ -43,6 +40,7 @@ class ScrimManager:
     async def on_thread_fetched(self, thread: discord.Thread):
         scrim_channel: discord.TextChannel = thread.parent
         scrim_channel_settings = self.guild.scrim_channel_config(scrim_channel.id)
+        self.scrim.settings = scrim_channel_settings
 
         self.broadcast = scrim_channel_settings["broadcast_channel"] \
             if "broadcast_channel" in scrim_channel_settings else 0
@@ -72,7 +70,7 @@ class ScrimManager:
         await self.__content_message.wait(
             lambda m: m.edit(content="", embeds=[self.create_rich_embed()], view=self.__view))
         await self.__start_message.wait(
-            lambda m: m.edit(content=self.scrim.generate_header_message(timezone=self.guild.timezone_name)))
+            lambda m: m.edit(content=self.scrim.generate_header_message()))
 
         if self.scrim.time < datetime.now(self.guild.timezone) - timedelta(hours=2):
             await self.__end()
@@ -89,7 +87,7 @@ class ScrimManager:
 
     def create_rich_embed(self) -> discord.Embed:
         embed = discord.Embed(title=f"Mixed scrim",
-                              description=self.scrim.scrim_time(separator='\n', timezone=self.guild.timezone_name),
+                              description=self.scrim.scrim_time(separator='\n'),
                               type="rich",
                               colour=discord.Colour.green(),
                               url=self.url)
@@ -112,7 +110,7 @@ class ScrimManager:
     def create_link_embed(self):
         full = " **FULL**" if self.scrim.full else ""
         embed = discord.Embed(title=f"Mixed scrim {full}",
-                              description=self.scrim.scrim_time(separator='\n', timezone=self.guild.timezone_name),
+                              description=self.scrim.scrim_time(separator='\n'),
                               type="rich",
                               colour=discord.Colour.green(),
                               url=self.url)
@@ -166,12 +164,10 @@ class ScrimManager:
         callout = "No reserve available"
         ephemeral = True
 
-        reserve = self.scrim.get_next_reserve()
+        reserve = self.scrim.call_next_reserve()
         if reserve is not None:
-            reserve["called"] = True
             callout = f"{reserve['mention']} you are needed! Get online if you can!"
             ephemeral = False
-            self.__sync()
         self.guild.queue_task(self.__update())
         return callout, ephemeral
 

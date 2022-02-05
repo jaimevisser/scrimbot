@@ -24,12 +24,12 @@ class Guild:
         self.log = scrimbot.Log(self.__log, lambda: self.__sync(self.__log, "log"))
         self.mod_channel: Optional[discord.TextChannel] = None
         self.timezone = pytz.timezone(self.config["timezone"])
-        self.timezone_name = self.config["timezone"]
         self.scrims = []
         self.broadcasts: list[scrimbot.Broadcaster] = []
         self.mod_roles = set()
         self.invite: Optional[discord.Invite] = None
         self.__invite_channel: Optional[discord.TextChannel] = None
+        self.__guild: Optional[discord.Guild] = None
         for scrim in self.__scrims:
             self.__create_scrim(scrim)
         if "mod_role" in self.config:
@@ -40,11 +40,11 @@ class Guild:
             self.name += " - " + self.config["name"]
 
     async def init(self):
-        self.guildobj = await self.bot.fetch_guild(int(self.id))
+        self.__guild = await self.bot.fetch_guild(int(self.id))
         self.mod_channel = await self.fetch_mod_channel()
 
         if "name" not in self.config:
-            self.name += " - " + self.guildobj.name
+            self.name += " - " + self.__guild.name
 
         scrims = self.scrims.copy()
         for scrim in scrims:
@@ -80,15 +80,15 @@ class Guild:
             await self.__fetch_invite_channel()
         if self.__invite_channel is not None:
             try:
-                invite = await self.__invite_channel.create_invite(max_uses=0, max_age=0, unique=False)
-                return invite
+                self.invite = await self.__invite_channel.create_invite(max_uses=0, max_age=0, unique=False)
+                return self.invite
             except discord.DiscordException as error:
                 _log.error(
                     f"{self.name}: Unable create an invite for channel {self.__invite_channel.id} due to {error}")
 
     async def __fetch_vanity_invite(self):
         try:
-            return await self.guildobj.vanity_invite()
+            return await self.__guild.vanity_invite()
         except discord.DiscordException as error:
             _log.error(f"{self.name}: Unable to fetch vanity invite due to {error}")
 
@@ -117,13 +117,21 @@ class Guild:
         async def sync():
             with open(f"data/{self.id}-{name}.json", 'w') as jsonfile:
                 json.dump(data, jsonfile)
+
         self.queue_task(sync())
 
     def __create_scrim(self, data: dict):
+        scrim = self.create_scrim(data)
+        return self.__create_scrim_manager(scrim)
+
+    def create_scrim(self, data: dict):
+        return scrimbot.Scrim(data, self.timezone, self.__sync_scrims)
+
+    def __create_scrim_manager(self, scrim):
         from scrimbot.scrimmanager import ScrimManager
-        scrim = ScrimManager(self, data, self.__sync_scrims, self.__remove_scrim)
-        self.scrims.append(scrim)
-        return scrim
+        scrim_manager = ScrimManager(self, scrim, self.__remove_scrim)
+        self.scrims.append(scrim_manager)
+        return scrim_manager
 
     def __remove_scrim(self, scrim):
         if scrim in self.scrims:
@@ -135,10 +143,10 @@ class Guild:
     def __sync_scrims(self):
         self.__sync(self.__scrims, "scrims")
 
-    async def create_scrim(self, data: dict):
-        self.__scrims.append(data)
+    def create_scrim_manager(self, scrim: scrimbot.Scrim):
+        self.__scrims.append(scrim.data)
         self.__sync_scrims()
-        scrim = self.__create_scrim(data)
+        scrim = self.__create_scrim_manager(scrim)
         self.queue_task(scrim.init())
 
     def is_on_timeout(self, user: discord.Member) -> bool:

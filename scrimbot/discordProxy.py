@@ -27,10 +27,6 @@ class DiscordProxy(Generic[T]):
         if await self.fetch():
             return mapper(self.content)
 
-        return None
-
     async def wait(self, coro_generator: Callable[[T], Coroutine[Any, Any, R]]) -> Optional[R]:
         if await self.fetch():
             return await coro_generator(self.content)
-
-        return None
