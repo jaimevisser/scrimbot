@@ -235,13 +235,11 @@ async def scrim(
 
     scrim_timestamp = math.floor(scrim_time.timestamp())
     channel_config = guild.scrim_channel_config(ctx.channel.id)
-    scrimmer_role = channel_config["role"]
 
     author: discord.User = ctx.author
 
     scrim_data = {"players": [],
                   "reserve": [],
-                  "role": scrimmer_role,
                   "author": {"id": author.id,
                              "name": author.display_name,
                              "avatar": author.display_avatar.url},
@@ -250,16 +248,18 @@ async def scrim(
                   "size": size,
                   "thread": 0}
 
-    scrim = Scrim(scrim_data, guild.timezone, None)
+    scrim_obj = guild.create_scrim(scrim_data)
+    scrim_obj.settings = channel_config
 
-    message: discord.Message = await ctx.channel.send(scrim.generate_header_message(timezone=guild.timezone_name))
+    message: discord.Message = await ctx.channel.send(scrim_obj.generate_header_message())
 
-    thread = await message.create_thread(name=f"{scrim_hour}.{scrim_minute} {scrim.name if scrim.name is not None else ''}")
+    thread = await message.create_thread(name=f"{scrim_hour}.{scrim_minute} {scrim_obj.name if scrim_obj.name is not None else ''}")
     scrim_data["thread"] = thread.id
     content = await thread.send("Loading scrim ...")
+    scrim_data["thread"] = thread.id
     scrim_data["message"] = content.id
 
-    await guild.create_scrim(scrim_data)
+    guild.create_scrim_manager(scrim_obj)
 
     await ctx.respond(f"Scrim created for {tag.time(scrim_time)} (your local time)")
 
