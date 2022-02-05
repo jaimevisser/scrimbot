@@ -8,7 +8,8 @@ class Scrim:
     def __init__(self, data: dict, timezone: tzinfo, sync):
         self.data = data
         self.id = data["thread"]
-        self.size = 8
+        self.name = data.get("name", None)
+        self.size = data.get("size", None) or 8
         self.time = datetime.fromtimestamp(data["time"], timezone)
         self.role = self.data["role"]
         self.author = self.data["author"]
@@ -117,7 +118,8 @@ class Scrim:
         if self.num_players > 0:
             count = f"**({self.num_players}/{self.size})** "
 
-        return f"{tag.role(self.role)}! Scrim at {self.scrim_time(timezone=timezone)} {count}" \
+        return f"{tag.role(self.role)}! Scrim {f'*{self.name}* ' if self.name is not None else ''}" \
+               f"at {self.scrim_time(timezone=timezone)} {count}" \
                f"started by {tag.user(self.author['id'])}\n"
 
     def generate_player_list(self, separator="\n") -> str:
@@ -158,7 +160,7 @@ class Scrim:
             thread_msg += f"Reserves, feel free to join in.\n" \
                           f"{reserves}"
 
-        shortage = self.size - self.num_players + self.num_reserves
+        shortage = self.size - (self.num_players + self.num_reserves)
         if shortage <= 2:
             channel_msg = f"\n{tag.role(self.role)}, you might be able to make this a full scrim.\n" \
                           f"We need at least {shortage} player(s)."

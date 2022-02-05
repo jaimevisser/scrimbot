@@ -198,7 +198,9 @@ async def log(
 @bot.slash_command(guild_ids=config.guilds)
 async def scrim(
         ctx,
-        time: Option(str, "Time when the scrim will start, format must be 14:00, 14.00 or 1400")
+        time: Option(str, "Time when the scrim will start, format must be 14:00, 14.00 or 1400"),
+        name: Option(str, "Give this scrim a name.", required=False),
+        size: Option(int, "Number of players for this scrim. This can be used to set up a mixed vs team.", required=False)
 ):
     """Start a scrim in this channel."""
     guild = guilds[ctx.guild_id]
@@ -244,14 +246,15 @@ async def scrim(
                              "name": author.display_name,
                              "avatar": author.display_avatar.url},
                   "time": scrim_timestamp,
+                  "name": name,
+                  "size": size,
                   "thread": 0}
 
     scrim = Scrim(scrim_data, guild.timezone, None)
 
-    message = await ctx.channel.send(scrim.generate_header_message(timezone=guild.timezone_name))
+    message: discord.Message = await ctx.channel.send(scrim.generate_header_message(timezone=guild.timezone_name))
 
-    thread = await ctx.channel.create_thread(message=message, name=f"{scrim_hour}.{scrim_minute}",
-                                             type=ChannelType.public_thread)
+    thread = await message.create_thread(name=f"{scrim_hour}.{scrim_minute} {scrim.name if scrim.name is not None else ''}")
     scrim_data["thread"] = thread.id
     content = await thread.send("Loading scrim ...")
     scrim_data["message"] = content.id
