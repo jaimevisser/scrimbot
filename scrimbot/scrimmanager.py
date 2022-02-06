@@ -86,7 +86,8 @@ class ScrimManager:
         self.guild.queue_task(self.guild.update_broadcast())
 
     def create_rich_embed(self) -> discord.Embed:
-        embed = discord.Embed(title=f"Mixed scrim",
+        name = f"Scrim *{self.scrim.name}*" if self.scrim.name is not None else "Mixed scrim"
+        embed = discord.Embed(title=name,
                               description=self.scrim.scrim_time(separator='\n'),
                               type="rich",
                               colour=discord.Colour.green(),
@@ -109,7 +110,8 @@ class ScrimManager:
 
     def create_link_embed(self):
         full = " **FULL**" if self.scrim.full else ""
-        embed = discord.Embed(title=f"Mixed scrim {full}",
+        name = f"Scrim *{self.scrim.name}*" if self.scrim.name is not None else "Mixed scrim"
+        embed = discord.Embed(title=f"{name} {full}",
                               description=self.scrim.scrim_time(separator='\n'),
                               type="rich",
                               colour=discord.Colour.green(),

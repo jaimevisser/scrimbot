@@ -8,7 +8,7 @@ class Scrim:
     def __init__(self, data: dict, timezone: tzinfo, sync):
         self.data = data
         self.name = data.get("name", None)
-        self.size = data.get("size", None) or 8
+        self.size = data.get("size", 8)
         self.time = datetime.fromtimestamp(data["time"], timezone)
         self.timezone = timezone
         self.author = self.data["author"]
@@ -39,7 +39,7 @@ class Scrim:
 
     @property
     def started(self) -> bool:
-        return "started" in self.data
+        return self.data.get("started", False)
 
     @started.setter
     def started(self, started: bool):
