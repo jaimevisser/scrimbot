@@ -7,7 +7,8 @@ from scrimbot import tag
 class Scrim:
     def __init__(self, data: dict, timezone: tzinfo, sync):
         self.data = data
-        self.size = 8
+        self.name = data.get("name", None)
+        self.size = data.get("size", 8)
         self.time = datetime.fromtimestamp(data["time"], timezone)
         self.timezone = timezone
         self.author = self.data["author"]
@@ -38,7 +39,7 @@ class Scrim:
 
     @property
     def started(self) -> bool:
-        return "started" in self.data
+        return self.data.get("started", False)
 
     @started.setter
     def started(self, started: bool):
@@ -141,8 +142,9 @@ class Scrim:
             count = f"**({self.num_players}/{self.size})** "
 
         role = f"{self.__role}! " if self.__role is not None else ""
-        return f"{role}Scrim at {self.scrim_time()} {count}" \
-               f"started by {tag.user(self.author['id'])}\n"
+        return f"{role}Scrim {f'*{self.name}* ' if self.name is not None else ''}" \
+               f"at {self.scrim_time()} {count}" \
+               f"started by {tag.user(self.author['id'])}"
 
     def generate_player_list(self, separator="\n") -> str:
         return separator.join(map(lambda p: p['mention'], self.data["players"]))
@@ -182,7 +184,7 @@ class Scrim:
             thread_msg += f"Reserves, feel free to join in.\n" \
                           f"{reserves}"
 
-        shortage = self.size - self.num_players + self.num_reserves
+        shortage = self.size - (self.num_players + self.num_reserves)
         if shortage <= 2:
             role = f"{self.__role}" if self.__role is not None else "Scrimmers"
             channel_msg = f"{role}, you might be able to make this a full scrim.\n" \
