@@ -279,7 +279,7 @@ async def kick(
     scrim = guild.get_scrim(ctx.channel.id)
     
     if scrim is None:
-        await ctx.respond("Sorry, there is no scrim in this channel.", ephemeral=True)
+        await ctx.respond("Sorry, there is no (active) scrim in this channel.", ephemeral=True)
         return
     if not scrim.contains_player(player.id):
         await ctx.respond("The player is not signed up for this scrim.", ephemeral=True)
@@ -291,13 +291,12 @@ async def kick(
     await scrim.leave(player)
     await ctx.respond("Player was removed from the scrim.", ephemeral=True)
 
+    reason_str = f" with the reason: {reason}" if reason else ""
     guild.log.add_note(player.id, 
                        ctx.author.id, 
-                       text=f"Player was kicked from the scrim {tag.channel(scrim.id)} by {ctx.author}" \
-                            + (f" with the reason: {reason}" if reason else ".")
+                       text=f"Player was kicked from the scrim {tag.channel(scrim.id)} by {ctx.author}{reason_str}."
     )
-    _log.info(f"{player} was kicked from the scrim at {scrim.scrim.time.isoformat()} by {ctx.author}" \
-              + (f" with the reason: {reason}" if reason else "."))
+    _log.info(f"{player} was kicked from the scrim at {scrim.scrim.time.isoformat()} by {ctx.author}{reason_str}.")
 
 
 @bot.slash_command(name="active-scrims", guild_ids=config.guilds)
