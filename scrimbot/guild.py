@@ -132,6 +132,9 @@ class Guild:
         scrim_manager = ScrimManager(self, scrim, self.__remove_scrim)
         self.scrims.append(scrim_manager)
         return scrim_manager
+    
+    def get_scrim(self, id: int) -> "scrimbot.ScrimManager":
+        return next(filter(lambda s: s.id == id, self.scrims), None)
 
     def __remove_scrim(self, scrim):
         if scrim in self.scrims:

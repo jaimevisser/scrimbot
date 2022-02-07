@@ -268,6 +268,40 @@ async def scrim(
     await ctx.respond(f"Scrim created for {tag.time(scrim_time)} (your local time)")
 
 
+@bot.slash_command(guild_ids=config.guilds)
+@is_mod()
+async def kick(
+    ctx, 
+    player: Option(SlashCommandOptionType.user, "User you want to kick from this scrim."),
+    reason: Option(str, "Specify the reason for kicking the user from the scrim.", required=False)
+):
+    guild: scrimbot.Guild = guilds[ctx.guild_id]
+    scrim = guild.get_scrim(ctx.channel.id)
+    
+    if scrim is None:
+        await ctx.respond("Sorry, there is no (active) scrim in this channel.", ephemeral=True)
+        return
+    if not scrim.contains_player(player.id):
+        await ctx.respond("The player is not signed up for this scrim.", ephemeral=True)
+        return
+    if scrim.scrim.started and scrim.scrim.contains_player(player.id):
+        await ctx.respond("This scrim has already started. The player can not be removed anymore.", ephemeral=True)
+        return
+
+    await scrim.leave(player)
+    await ctx.respond("Player was removed from the scrim.", ephemeral=True)
+
+    s = f"Player was kicked from the scrim {tag.channel(scrim.id)} by {ctx.author}."
+    s += f" Reason: {reason}." if reason else ""
+    guild.log.add_note(player.id, 
+                       ctx.author.id, 
+                       text=s)
+
+    s = f"{player} was kicked from the scrim at {scrim.scrim.time.isoformat()} by {ctx.author}."
+    s += f" Reason: {reason}." if reason else ""
+    _log.info(s)
+
+
 @bot.slash_command(name="active-scrims", guild_ids=config.guilds)
 async def active_scrims(
         ctx
