@@ -276,28 +276,28 @@ async def kick(
     reason: Option(str, "Specify the reason for kicking the user from the scrim.", required=False)
 ):
     guild: scrimbot.Guild = guilds[ctx.guild_id]
-    scrim = guild.get_scrim(ctx.channel.id)
+    scrim_manager = guild.get_scrim_manager(ctx.channel.id)
     
-    if scrim is None:
+    if scrim_manager is None:
         await ctx.respond("Sorry, there is no (active) scrim in this channel.", ephemeral=True)
         return
-    if not scrim.contains_player(player.id):
+    if not scrim_manager.contains_player(player.id):
         await ctx.respond("The player is not signed up for this scrim.", ephemeral=True)
         return
-    if scrim.scrim.started and scrim.scrim.contains_player(player.id):
+    if scrim_manager.scrim.started and scrim_manager.scrim.contains_player(player.id):
         await ctx.respond("This scrim has already started. The player can not be removed anymore.", ephemeral=True)
         return
 
-    await scrim.leave(player)
+    await scrim_manager.leave(player)
     await ctx.respond("Player was removed from the scrim.", ephemeral=True)
 
-    s = f"Player was kicked from the scrim {tag.channel(scrim.id)} by {ctx.author}."
+    s = f"Player was kicked from the scrim {tag.channel(scrim_manager.id)} by {ctx.author}."
     s += f" Reason: {reason}." if reason else ""
     guild.log.add_note(player.id, 
                        ctx.author.id, 
                        text=s)
 
-    s = f"{player} was kicked from the scrim at {scrim.scrim.time.isoformat()} by {ctx.author}."
+    s = f"{player} was kicked from the scrim at {scrim_manager.scrim.time.isoformat()} by {ctx.author}."
     s += f" Reason: {reason}." if reason else ""
     _log.info(s)
 
@@ -309,7 +309,7 @@ async def active_scrims(
     """Get a list of active scrims that haven't started yet (10 max)"""
     guild = guilds[ctx.guild_id]
 
-    scrims: list[scrimbot.ScrimManager] = guild.scrims
+    scrims: list[scrimbot.ScrimManager] = guild.scrim_managers
     relevant_scrims: list[scrimbot.ScrimManager] = \
         list([s for s in scrims if s.scrim.time >= datetime.now(timezone.utc)])
     relevant_scrims.sort(key=lambda s: s.scrim.time)

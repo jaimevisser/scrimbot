@@ -24,7 +24,7 @@ class Guild:
         self.log = scrimbot.Log(self.__log, lambda: self.__sync(self.__log, "log"))
         self.mod_channel: Optional[discord.TextChannel] = None
         self.timezone = pytz.timezone(self.config["timezone"])
-        self.scrims = []
+        self.scrim_managers: list[scrimbot.ScrimManager] = []
         self.broadcasts: list[scrimbot.Broadcaster] = []
         self.mod_roles = set()
         self.invite: Optional[discord.Invite] = None
@@ -46,7 +46,7 @@ class Guild:
         if "name" not in self.config:
             self.name += " - " + self.__guild.name
 
-        scrims = self.scrims.copy()
+        scrims = self.scrim_managers.copy()
         for scrim in scrims:
             try:
                 await scrim.init()
@@ -130,15 +130,15 @@ class Guild:
     def __create_scrim_manager(self, scrim):
         from scrimbot.scrimmanager import ScrimManager
         scrim_manager = ScrimManager(self, scrim, self.__remove_scrim)
-        self.scrims.append(scrim_manager)
+        self.scrim_managers.append(scrim_manager)
         return scrim_manager
     
-    def get_scrim(self, id: int) -> "scrimbot.ScrimManager":
-        return next(filter(lambda s: s.id == id, self.scrims), None)
+    def get_scrim_manager(self, id: int) -> "scrimbot.ScrimManager":
+        return next(filter(lambda s: s.id == id, self.scrim_managers), None)
 
     def __remove_scrim(self, scrim):
-        if scrim in self.scrims:
-            self.scrims.remove(scrim)
+        if scrim in self.scrim_managers:
+            self.scrim_managers.remove(scrim)
         if scrim.scrim.data in self.__scrims:
             self.__scrims.remove(scrim.scrim.data)
         self.__sync_scrims()

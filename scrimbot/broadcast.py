@@ -45,7 +45,7 @@ class Broadcaster:
         await self.__update()
 
     async def __update(self):
-        scrims: list[ScrimManager] = self.guild.scrims
+        scrims: list[ScrimManager] = self.guild.scrim_managers
         relevant_scrims: list[ScrimManager] = \
             list([s for s in scrims if s.broadcast == self.channel and s.scrim.time >= datetime.now(timezone.utc)])
 
