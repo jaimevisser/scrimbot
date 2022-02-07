@@ -9,22 +9,6 @@ The bot needs two files in ./data
 
 ### bot.token
 This should be a plain text file containing the bot token.
-### config.json
-This should be a json file containing the settings for the bot. Settings are on a per-server basis. If you plan to support multiple servers you can add multiple of these blocks. Example below:
+### config.yaml/config.json
+This should be a yaml or json file containing the settings for the bot. Settings are on a per-server basis. If you plan to support multiple servers you can add multiple of these blocks. A config file examlpe can be found in the examples.
 
-```json
-{
-  "908282497769558036": {
-    "scrim_channels": {
-      "918571303710101504": {
-        "role": 925682196445003786
-      }
-    },
-    "mod_channel": 916220711507472425,
-    "mod_role": 925681625017253949,
-    "reports_per_day": 2,
-    "timeout_role": 926924216853467147,
-    "timezone": "Europe/London"
-  }
-}
-```
