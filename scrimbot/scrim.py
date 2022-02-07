@@ -35,7 +35,7 @@ class Scrim:
 
     @property
     def full(self) -> bool:
-        return self.size < self.num_players
+        return self.size <= self.num_players
 
     @property
     def started(self) -> bool:

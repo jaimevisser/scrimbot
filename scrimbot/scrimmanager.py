@@ -111,7 +111,7 @@ class ScrimManager:
     def create_link_embed(self):
         full = " **FULL**" if self.scrim.full else ""
         name = f"Scrim *{self.scrim.name}*" if self.scrim.name is not None else "Mixed scrim"
-        embed = discord.Embed(title=f"{name} {full}",
+        embed = discord.Embed(title=f"{name}{full}",
                               description=self.scrim.scrim_time(separator='\n'),
                               type="rich",
                               colour=discord.Colour.green(),
