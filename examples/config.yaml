@@ -1,13 +1,19 @@
 '908282497769558036': # Guild ID
-  scrim_channels: # List of scrim channels
-    '933822091982176356': # Scrim channel
-      #role: 925682196445003786 # Role to ping for scrims
-      broadcast_channel: 933821696748711986 # Optional, announcement channel to broadcast the list of scrims
+  timezone: UTC # Timezone as specified in pytz
+  features: # List of enabled features, can be left out to enable all features
+    - SCRIM
+    - REPORT
+    - LOG
+    - TIME
+  scrim:
+    timeout_role: 926924216853467147 # Role that denotes a user is not allowed to participate in scrims
+    channels: # List of scrim channels
+      '933822091982176356': # Scrim channel
+        #role: 925682196445003786 # Role to ping for scrims
+        broadcast_channel: 933821696748711986 # Optional, announcement channel to broadcast the list of scrims
   invite_channel: 908282497769558039 # Channel used to generate invites
   mod_channel: 916220711507472425 # Channel where scrimbot puts out moderator messages
   mod_roles: # Define a list of moderator roles that can use moderator functions
     - 925681625017253949
   #mod_role: 925681625017253900 # Define a single moderator role
   reports_per_day: 2 # Number of reports per day allowed
-  timeout_role: 926924216853467147 # Role that denotes a user is not allowed to participate in scrims
-  timezone: UTC # Timezone as specified in pytz
