@@ -68,7 +68,7 @@ async def on_ready():
         _log.info("Bot initialised")
 
 
-@bot.slash_command(guild_ids=config.guilds_with_features({"REPORT"}))
+@bot.slash_command(guild_ids=config.guilds_with_features({"LOG", "REPORT"}))
 async def report(
         ctx,
         name: Option(SlashCommandOptionType.user, "User to report"),
@@ -195,7 +195,7 @@ async def log(
     await ctx.respond(output)
 
 
-@bot.slash_command(guild_ids=config.guilds_with_features({"SCRIM"}))
+@bot.slash_command(guild_ids=config.guilds_with_features({"SCRIMS"}))
 async def scrim(
         ctx,
         time: Option(str, "Time when the scrim will start, format must be 14:00, 14.00 or 1400"),
@@ -268,7 +268,7 @@ async def scrim(
     await ctx.respond(f"Scrim created for {tag.time(scrim_time)} (your local time)")
 
 
-@bot.slash_command(guild_ids=config.guilds_with_features({"SCRIM"}))
+@bot.slash_command(guild_ids=config.guilds_with_features({"SCRIMS"}))
 @is_mod()
 async def kick(
         ctx,
@@ -302,7 +302,7 @@ async def kick(
     _log.info(s)
 
 
-@bot.slash_command(name="active-scrims", guild_ids=config.guilds_with_features({"SCRIM"}))
+@bot.slash_command(name="active-scrims", guild_ids=config.guilds_with_features({"SCRIMS"}))
 async def active_scrims(
         ctx
 ):
