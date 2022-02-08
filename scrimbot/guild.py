@@ -30,6 +30,7 @@ class Guild:
         self.invite: Optional[discord.Invite] = None
         self.__invite_channel: Optional[discord.TextChannel] = None
         self.__guild: Optional[discord.Guild] = None
+        self.timeout_role = self.config.get("scrim", dict()).get("timeout_role", None)
         for scrim in self.__scrims:
             self.__create_scrim(scrim)
         if "mod_role" in self.config:
@@ -38,6 +39,10 @@ class Guild:
             self.mod_roles = self.mod_roles.union(set(self.config["mod_roles"]))
         if "name" in self.config:
             self.name += " - " + self.config["name"]
+
+    @property
+    def scrim_channels(self) -> dict[str, dict]:
+        return self.config.get("scrim", dict()).get("channels", dict())
 
     async def init(self):
         self.__guild = await self.bot.fetch_guild(int(self.id))
@@ -54,7 +59,7 @@ class Guild:
                 _log.error(f"Unable to properly initialise scrim {scrim.id} due to {error}")
 
         broadcast_channels = \
-            set(s["broadcast_channel"] for s in self.config["scrim_channels"].values() if "broadcast_channel" in s)
+            set(s["broadcast_channel"] for s in self.scrim_channels.values() if "broadcast_channel" in s)
 
         for b in broadcast_channels:
             self.broadcasts.append(scrimbot.Broadcaster(b, self))
@@ -127,12 +132,12 @@ class Guild:
     def create_scrim(self, data: dict):
         return scrimbot.Scrim(data, self.timezone, self.__sync_scrims)
 
-    def __create_scrim_manager(self, scrim):
+    def __create_scrim_manager(self, scrim) -> "scrimbot.ScrimManager":
         from scrimbot.scrimmanager import ScrimManager
         scrim_manager = ScrimManager(self, scrim, self.__remove_scrim)
         self.scrim_managers.append(scrim_manager)
         return scrim_manager
-    
+
     def get_scrim_manager(self, id: int) -> "scrimbot.ScrimManager":
         return next(filter(lambda s: s.id == id, self.scrim_managers), None)
 
@@ -154,7 +159,7 @@ class Guild:
 
     def is_on_timeout(self, user: discord.Member) -> bool:
         for r in user.roles:
-            if r.id == self.config["timeout_role"]:
+            if r.id == self.timeout_role:
                 return True
         return False
 
@@ -162,8 +167,8 @@ class Guild:
         for b in self.broadcasts:
             await b.update()
 
-    def scrim_channel_config(self, channnel):
-        return self.config["scrim_channels"][str(channnel)]
+    def scrim_channel_config(self, channel):
+        return self.scrim_channels[str(channel)]
 
     def queue_task(self, coro) -> asyncio.Task:
         return self.bot.loop.create_task(coro)

@@ -9,10 +9,10 @@ from typing import Callable
 import discord
 from discord import CommandPermission
 from discord.commands import Option
-from discord.enums import SlashCommandOptionType, ChannelType
+from discord.enums import SlashCommandOptionType
 
 import scrimbot
-from scrimbot import tag, Scrim
+from scrimbot import tag
 
 os.makedirs("data/logs", exist_ok=True)
 filehandler = RotatingFileHandler(filename="data/logs/scrimbot.log", mode="w", maxBytes=1024 * 50, backupCount=4)
@@ -68,7 +68,7 @@ async def on_ready():
         _log.info("Bot initialised")
 
 
-@bot.slash_command(guild_ids=config.guilds)
+@bot.slash_command(guild_ids=config.guilds_with_features({"REPORT"}))
 async def report(
         ctx,
         name: Option(SlashCommandOptionType.user, "User to report"),
@@ -87,7 +87,7 @@ async def report(
     await ctx.respond("Report sent", ephemeral=True)
 
 
-@bot.slash_command(guild_ids=config.guilds)
+@bot.slash_command(guild_ids=config.guilds_with_features({"LOG"}))
 @is_mod()
 async def note(
         ctx,
@@ -103,7 +103,7 @@ async def note(
     await ctx.respond("Note added", ephemeral=True)
 
 
-@bot.slash_command(guild_ids=config.guilds)
+@bot.slash_command(guild_ids=config.guilds_with_features({"LOG"}))
 @is_mod()
 async def warn(
         ctx,
@@ -128,7 +128,7 @@ async def warn(
     await ctx.respond(message, ephemeral=True)
 
 
-@bot.slash_command(guild_ids=config.guilds)
+@bot.slash_command(guild_ids=config.guilds_with_features({"LOG"}))
 @is_mod()
 async def rmlog(
         ctx,
@@ -145,7 +145,7 @@ async def rmlog(
         await ctx.respond("No matching entries found", ephemeral=True)
 
 
-@bot.slash_command(guild_ids=config.guilds)
+@bot.slash_command(guild_ids=config.guilds_with_features({"LOG"}))
 @is_mod()
 async def purgelog(
         ctx,
@@ -163,7 +163,7 @@ async def purgelog(
         await ctx.respond("No matching entries found", ephemeral=True)
 
 
-@bot.slash_command(guild_ids=config.guilds)
+@bot.slash_command(guild_ids=config.guilds_with_features({"LOG"}))
 @is_mod()
 async def log(
         ctx,
@@ -195,7 +195,7 @@ async def log(
     await ctx.respond(output)
 
 
-@bot.slash_command(guild_ids=config.guilds)
+@bot.slash_command(guild_ids=config.guilds_with_features({"SCRIM"}))
 async def scrim(
         ctx,
         time: Option(str, "Time when the scrim will start, format must be 14:00, 14.00 or 1400"),
@@ -215,7 +215,7 @@ async def scrim(
         await ctx.respond("Invalid time, format must be 14:00, 14.00 or 1400!", ephemeral=True)
         return
 
-    if str(ctx.channel.id) not in guild.config["scrim_channels"].keys():
+    if str(ctx.channel.id) not in guild.scrim_channels.keys():
         await ctx.respond("This is not a channel for organising scrims!", ephemeral=True)
         return
 
@@ -268,16 +268,16 @@ async def scrim(
     await ctx.respond(f"Scrim created for {tag.time(scrim_time)} (your local time)")
 
 
-@bot.slash_command(guild_ids=config.guilds)
+@bot.slash_command(guild_ids=config.guilds_with_features({"SCRIM"}))
 @is_mod()
 async def kick(
-    ctx, 
-    player: Option(SlashCommandOptionType.user, "User you want to kick from this scrim."),
-    reason: Option(str, "Specify the reason for kicking the user from the scrim.", required=False)
+        ctx,
+        player: Option(SlashCommandOptionType.user, "User you want to kick from this scrim."),
+        reason: Option(str, "Specify the reason for kicking the user from the scrim.", required=False)
 ):
     guild: scrimbot.Guild = guilds[ctx.guild_id]
     scrim_manager = guild.get_scrim_manager(ctx.channel.id)
-    
+
     if scrim_manager is None:
         await ctx.respond("Sorry, there is no (active) scrim in this channel.", ephemeral=True)
         return
@@ -293,8 +293,8 @@ async def kick(
 
     s = f"Player was kicked from the scrim {tag.channel(scrim_manager.id)} by {ctx.author}."
     s += f" Reason: {reason}." if reason else ""
-    guild.log.add_note(player.id, 
-                       ctx.author.id, 
+    guild.log.add_note(player.id,
+                       ctx.author.id,
                        text=s)
 
     s = f"{player} was kicked from the scrim at {scrim_manager.scrim.time.isoformat()} by {ctx.author}."
@@ -302,7 +302,7 @@ async def kick(
     _log.info(s)
 
 
-@bot.slash_command(name="active-scrims", guild_ids=config.guilds)
+@bot.slash_command(name="active-scrims", guild_ids=config.guilds_with_features({"SCRIM"}))
 async def active_scrims(
         ctx
 ):
@@ -324,7 +324,7 @@ async def active_scrims(
     await ctx.respond(embeds=embeds, ephemeral=True)
 
 
-@bot.slash_command(guild_ids=config.guilds)
+@bot.slash_command(guild_ids=config.guilds_with_features({"TIME"}))
 async def time(ctx):
     """Show server time"""
     guild = guilds[ctx.guild_id]
@@ -332,14 +332,14 @@ async def time(ctx):
     server_time = datetime.now(guild.timezone)
 
     await ctx.respond(f"**Server timezone**\n"
-                      f"{guild.config['timezone']}\n"
+                      f"{guild.timezone.zone}\n"
                       f"**Server time**\n"
                       f"{server_time.strftime('%H:%M')}\n"
                       f"**Discord time tag**\n"
                       f"{tag.time(server_time)}", ephemeral=True)
 
 
-@bot.slash_command(name="archive-scrim", guild_ids=config.guilds)
+@bot.slash_command(name="archive-scrim", guild_ids=config.guilds_with_features({"SCRIMS"}))
 @is_mod()
 async def archive_scrim(
         ctx
@@ -351,7 +351,7 @@ async def archive_scrim(
         await ctx.respond("This isn't a thread", ephemeral=True)
         return
 
-    if str(ctx.channel.parent_id) not in guild.config["scrim_channels"].keys():
+    if str(ctx.channel.parent_id) not in guild.scrim_channels.keys():
         await ctx.respond("This isn't a thread in a scrim channel", ephemeral=True)
         return
 

@@ -5,10 +5,12 @@ import yaml
 
 
 class Config:
+    ALL_FEATURES = {"TIME", "LOG", "SCRIM", "REPORT"}
 
     def __init__(self):
-        self.guilds = []
-        self.config = None
+        self.guilds: list[int] = []
+        self.config: dict[str, dict]
+        self.__features: dict[int, set[str]] = {}
 
         with open('data/bot.token', 'r') as file:
             self.token = file.read().strip()
@@ -26,3 +28,9 @@ class Config:
 
         for g in self.config.keys():
             self.guilds.append(int(g))
+
+        for k, v in self.config.items():
+            self.__features[int(k)] = set(v.get("features", Config.ALL_FEATURES))
+
+    def guilds_with_features(self, features: set[str]) -> list[int]:
+        return list(k for k, v in self.__features.items() if v.issuperset(features))
