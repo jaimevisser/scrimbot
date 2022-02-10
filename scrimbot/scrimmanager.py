@@ -4,9 +4,10 @@ from datetime import datetime, timedelta
 from typing import Optional
 
 import discord
+from pytz import utc
 
 import scrimbot
-from scrimbot import DiscordProxy
+from scrimbot import DiscordProxy, tag
 
 
 class ScrimManager:
@@ -16,9 +17,11 @@ class ScrimManager:
         self.scrim = scrim
         self.__remove = remove
         self.broadcast = 0
+        self.ping_cooldown = timedelta(minutes=5)
 
         self.id = self.scrim.id
         self.url = ""
+        self.last_ping = datetime.now(tz=guild.timezone) - timedelta(hours=1)
 
         self.__view: Optional[discord.ui.View] = None
 
@@ -39,11 +42,13 @@ class ScrimManager:
 
     async def on_thread_fetched(self, thread: discord.Thread):
         scrim_channel: discord.TextChannel = thread.parent
-        scrim_channel_settings = self.guild.scrim_channel_config(scrim_channel.id)
+        scrim_channel_settings: dict = self.guild.scrim_channel_config(scrim_channel.id)
         self.scrim.settings = scrim_channel_settings
 
         self.broadcast = scrim_channel_settings["broadcast_channel"] \
             if "broadcast_channel" in scrim_channel_settings else 0
+
+        self.ping_cooldown = timedelta(minutes=scrim_channel_settings.get("ping_cooldown", 5))
 
         await self.__start_message.fetch(lambda: scrim_channel.fetch_message(self.id))
         await self.__content_message.fetch(lambda: thread.fetch_message(self.scrim.data["message"]))
@@ -108,7 +113,7 @@ class ScrimManager:
         embed.set_author(name=author["name"], icon_url=author["avatar"])
         return embed
 
-    def create_link_embed(self):
+    def create_link_embed(self) -> discord.Embed:
         full = " **FULL**" if self.scrim.full else ""
         name = f"Scrim *{self.scrim.name}*" if self.scrim.name is not None else "Mixed scrim"
         embed = discord.Embed(title=f"{name}{full}",
@@ -162,7 +167,7 @@ class ScrimManager:
         self.scrim.remove_reserve(user.id)
         self.guild.queue_task(self.__update())
 
-    async def call_reserve(self):
+    async def call_reserve(self) -> tuple[str, bool]:
         callout = "No reserve available"
         ephemeral = True
 
@@ -198,6 +203,18 @@ class ScrimManager:
             await asyncio.sleep(seconds)
 
         self.guild.queue_task(self.__update())
+
+    def ping(self, text, user) -> tuple[str, bool]:
+        now = datetime.now(utc)
+        if now - self.last_ping < self.ping_cooldown:
+            return "Don't ping that often!", True
+
+        if not self.scrim.contains_player(user):
+            return "You're not in this scrim!", True
+
+        self.last_ping = now
+        players = self.scrim.generate_player_list(separator=", ")
+        return f"{players}, You have been pinged by {tag.user(user)}!\n{text}", False
 
 
 def user_dict(user: discord.Member) -> dict:

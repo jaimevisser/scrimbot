@@ -173,7 +173,7 @@ class Scrim:
         if self.num_players + self.num_reserves >= self.size:
             return f"Scrim starting, get online!\n" \
                    f"{players}\n" \
-                   f"Reserves, we need you!\n" \
+                   f"Reserves, we might need you!\n" \
                    f"{reserves}", None
 
         thread_msg = f"Not enough players, feel free to get online and try to get it started anyway!\n" \

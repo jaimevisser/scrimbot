@@ -275,6 +275,7 @@ async def kick(
         player: Option(SlashCommandOptionType.user, "User you want to kick from this scrim."),
         reason: Option(str, "Specify the reason for kicking the user from the scrim.", required=False)
 ):
+    """Kick a player out of a scrim"""
     guild: scrimbot.Guild = guilds[ctx.guild_id]
     scrim_manager = guild.get_scrim_manager(ctx.channel.id)
 
@@ -300,6 +301,24 @@ async def kick(
     s = f"{player} was kicked from the scrim at {scrim_manager.scrim.time.isoformat()} by {ctx.author}."
     s += f" Reason: {reason}." if reason else ""
     _log.info(s)
+
+
+@bot.slash_command(name="ping-scrim", guild_ids=config.guilds_with_features({"SCRIMS", "SCRIM_PING"}))
+async def scrim_ping(
+        ctx,
+        text: Option(str, "Text to ping the scrim with")
+):
+    """Ping all players in the scrim"""
+    guild: scrimbot.Guild = guilds[ctx.guild_id]
+    scrim_manager = guild.get_scrim_manager(ctx.channel.id)
+
+    if scrim_manager is None:
+        await ctx.respond("Sorry, there is no (active) scrim in this channel.", ephemeral=True)
+        return
+
+    response, ephemeral = scrim_manager.ping(text, ctx.author.id)
+
+    await ctx.respond(response, ephemeral=ephemeral)
 
 
 @bot.slash_command(name="active-scrims", guild_ids=config.guilds_with_features({"SCRIMS"}))
