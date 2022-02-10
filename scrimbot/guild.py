@@ -1,4 +1,5 @@
 import asyncio
+from datetime import timedelta
 import json
 import logging
 import os
@@ -13,7 +14,6 @@ _log = logging.getLogger(__name__)
 
 
 class Guild:
-
     def __init__(self, id: str, config: dict, bot: discord.Bot):
         self.id = str(id)
         self.name = str(id)
@@ -21,6 +21,7 @@ class Guild:
         self.bot: discord.Bot = bot
         self.__log = self.__load_list("log")
         self.__scrims = self.__load_list("scrims")
+        self._timeouts = scrimbot.TimeoutList(self, self.__load_list("timeouts"))
         self.log = scrimbot.Log(self.__log, lambda: self.__sync(self.__log, "log"))
         self.mod_channel: Optional[discord.TextChannel] = None
         self.timezone = pytz.timezone(self.config["timezone"])
@@ -172,3 +173,16 @@ class Guild:
 
     def queue_task(self, coro) -> asyncio.Task:
         return self.bot.loop.create_task(coro)
+
+    def user_is_timeout(self, user_id):
+        return self._timeouts.is_timeout(user_id)
+    
+    def add_user_timeout(self, user_id, duration: timedelta):
+        self._timeouts.add_user(user_id, duration)
+    
+    def remove_user_timeout(self, user_id):
+        self._timeouts.remove_user(user_id)
+    
+    def user_timeout(self, user_id):
+        "Get remaining timeout for a user or None."
+        return self._timeouts.user_timeout(user_id)

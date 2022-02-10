@@ -30,11 +30,12 @@ bot.initialised = False
 
 _log = logging.getLogger("scrimbot")
 
-for g in config.guilds:
-    guilds[g] = scrimbot.Guild(str(g), config.config[str(g)], bot)
 
 
 async def init():
+    for g in config.guilds:
+        guilds[g] = scrimbot.Guild(str(g), config.config[str(g)], bot)
+    
     for guild in guilds.values():
         try:
             await guild.init()
