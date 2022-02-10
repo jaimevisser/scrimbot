@@ -31,7 +31,11 @@ class Guild:
         self.invite: Optional[discord.Invite] = None
         self.__invite_channel: Optional[discord.TextChannel] = None
         self.__guild: Optional[discord.Guild] = None
-        self.timeout_role = self.config.get("scrim", dict()).get("timeout_role", None)
+        self.__timeout_role = self.config.get("scrim", dict()).get("timeout_role", None)
+
+        self.__defaults = self.config.get("scrim", dict()).copy()
+        self.__defaults.pop("channels", None)
+
         for scrim in self.__scrims:
             self.__create_scrim(scrim)
         if "mod_role" in self.config:
@@ -43,7 +47,11 @@ class Guild:
 
     @property
     def scrim_channels(self) -> dict[str, dict]:
-        return self.config.get("scrim", dict()).get("channels", dict())
+        channels = self.config.get("scrim", dict()).get("channels", dict())
+        for c in channels:
+            if channels[c] is None:
+                channels[c] = dict()
+        return channels if channels is not None else dict()
 
     async def init(self):
         self.__guild = await self.bot.fetch_guild(int(self.id))
@@ -58,6 +66,7 @@ class Guild:
                 await scrim.init()
             except Exception as error:
                 _log.error(f"Unable to properly initialise scrim {scrim.id} due to {error}")
+                _log.exception(error)
 
         broadcast_channels = \
             set(s["broadcast_channel"] for s in self.scrim_channels.values() if "broadcast_channel" in s)
@@ -66,7 +75,7 @@ class Guild:
             self.broadcasts.append(scrimbot.Broadcaster(b, self))
 
         for b in self.broadcasts:
-            self.queue_task(b.update())
+            await b.update()
 
     async def fetch_mod_channel(self):
         if self.mod_channel is None:
@@ -78,7 +87,7 @@ class Guild:
                 _log.error(f"{self.name}: Unable to properly load mod channel due to {error}")
         return self.mod_channel
 
-    async def fetch_invite(self):
+    async def fetch_invite(self) -> discord.Invite:
         vanity = await self.__fetch_vanity_invite()
         if vanity is not None:
             return vanity
@@ -92,7 +101,7 @@ class Guild:
                 _log.error(
                     f"{self.name}: Unable create an invite for channel {self.__invite_channel.id} due to {error}")
 
-    async def __fetch_vanity_invite(self):
+    async def __fetch_vanity_invite(self) -> discord.Invite:
         try:
             return await self.__guild.vanity_invite()
         except discord.DiscordException as error:
@@ -126,11 +135,11 @@ class Guild:
 
         self.queue_task(sync())
 
-    def __create_scrim(self, data: dict):
+    def __create_scrim(self, data: dict) -> "scrimbot.ScrimManager":
         scrim = self.create_scrim(data)
         return self.__create_scrim_manager(scrim)
 
-    def create_scrim(self, data: dict):
+    def create_scrim(self, data: dict) -> scrimbot.Scrim:
         return scrimbot.Scrim(data, self.timezone, self.__sync_scrims)
 
     def __create_scrim_manager(self, scrim) -> "scrimbot.ScrimManager":
@@ -160,7 +169,7 @@ class Guild:
 
     def is_on_timeout(self, user: discord.Member) -> bool:
         for r in user.roles:
-            if r.id == self.timeout_role:
+            if r.id == self.__timeout_role:
                 return True
         return False
 
@@ -168,8 +177,11 @@ class Guild:
         for b in self.broadcasts:
             await b.update()
 
-    def scrim_channel_config(self, channel):
-        return self.scrim_channels[str(channel)]
+    def scrim_channel_config(self, channel) -> dict:
+        settings = self.__defaults.copy()
+        channel = self.scrim_channels[str(channel)]
+        settings.update(channel)
+        return settings
 
     def queue_task(self, coro) -> asyncio.Task:
         return self.bot.loop.create_task(coro)
