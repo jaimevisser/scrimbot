@@ -182,6 +182,5 @@ class Guild:
         settings.update(channel)
         return settings
 
-
-def queue_task(self, coro) -> asyncio.Task:
-    return self.bot.loop.create_task(coro)
+    def queue_task(self, coro) -> asyncio.Task:
+        return self.bot.loop.create_task(coro)
