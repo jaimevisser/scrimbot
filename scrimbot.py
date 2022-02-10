@@ -303,6 +303,80 @@ async def kick(
     _log.info(s)
 
 
+@bot.slash_command(guild_ids=config.guilds_with_features({"SCRIMS"}))
+async def timeout(
+        ctx, 
+        user: Option(SlashCommandOptionType.user, description="User to send into timeout."),
+        days: Option(int, description="Number of days for the timeout", required=False),
+        hours: Option(int, description="Number of hours for the timeout", required=False),
+        minutes: Option(int, description="Number of minutes for the timeout", required=False),
+        reset: Option(bool, "Remove the timeout status for a user. This overwrites the other options.", required=False),
+        reason: Option(str, "Reason for this action.", required=False)):
+    """Send user into scrim-timeout for a specified duration or check on timeout status."""
+    guild: scrimbot.Guild = guilds[ctx.guild.id]
+    days = days or 0
+    hours = hours or 0
+    minutes = minutes or 0
+    total_timeout_mins = (days*24 + hours)*60 + minutes
+
+    if reset:
+        if not guild.user_is_timeout(user.id):
+            await ctx.respond(f"User is not in timeout.", ephemeral=True)
+        
+        delta = guild.user_timeout(user.id)
+        try:
+            guild.remove_user_timeout(user.id)
+        except NameError:
+            await ctx.respond("User not in timeout.")   #TODO: still remove timeout role, could be artifact
+            return
+
+        await ctx.respond(f"Timeout for {user} was canceled with {delta} remaining.",
+                          ephemeral=True)
+        
+        msg = f"Timeout was cancelled with {delta} remaining."
+        msg += f" Reason: {reason}." if reason else ""
+        guild.log.add_note(user.id, ctx.author.id, msg)
+
+        msg = f"Timeout for {user} was cancelled by {ctx.author} " \
+              f"with {delta} remaining."
+        msg += f" Reason: {reason}." if reason else ""
+        _log.info(msg)
+        return
+    
+    if total_timeout_mins < 0:
+        # negative timeout duration
+        await ctx.respond(f"Invalid timeout duration: {total_timeout_mins} minutes.")
+        return
+
+    if not total_timeout_mins:
+        # no duration specified / duration is 0
+        delta = guild.user_timeout(user.id)
+        if delta is None:
+            await ctx.respond("User is not in timeout.", ephemeral=True)
+        else:
+            await ctx.respond(f"User is in timeout for {delta}.", ephemeral=True)
+        return
+
+    if guild.user_is_timeout(user.id):
+        delta = guild.user_timeout(user.id)
+        s = f"User is already in timeout for another {delta}."
+        await ctx.respond(s, ephemeral=True)
+        return
+    
+    timeout = timedelta(minutes=total_timeout_mins)
+    guild.add_user_timeout(user.id, timeout)
+    await ctx.respond(f"User was sent into timeout for {timeout}.",
+                      ephemeral=True)
+
+    msg = f"User was sent to timeout for {timeout}."
+    msg += f" Reason: {reason}." if reason else ""
+    guild.log.add_note(user.id, ctx.author.id, msg)
+
+    msg = f"User {user} was sent to timeout by {ctx.author} for {timeout}."
+    msg += f" Reason: {reason}." if reason else ""
+    _log.info(msg)
+
+
 @bot.slash_command(name="active-scrims", guild_ids=config.guilds_with_features({"SCRIMS"}))
 async def active_scrims(
         ctx
