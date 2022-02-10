@@ -40,6 +40,7 @@ async def init():
             await guild.init()
         except Exception as error:
             _log.error(f"Unable to properly initialise guild {guild.id} due to {error}")
+            _log.exception(error)
 
 
 def is_mod():

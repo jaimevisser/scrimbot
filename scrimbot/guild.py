@@ -46,7 +46,11 @@ class Guild:
 
     @property
     def scrim_channels(self) -> dict[str, dict]:
-        return self.config.get("scrim", dict()).get("channels", dict())
+        channels = self.config.get("scrim", dict()).get("channels", dict())
+        for c in channels:
+            if channels[c] is None:
+                channels[c] = dict()
+        return channels if channels is not None else dict()
 
     async def init(self):
         self.__guild = await self.bot.fetch_guild(int(self.id))
@@ -61,6 +65,7 @@ class Guild:
                 await scrim.init()
             except Exception as error:
                 _log.error(f"Unable to properly initialise scrim {scrim.id} due to {error}")
+                _log.exception(error)
 
         broadcast_channels = \
             set(s["broadcast_channel"] for s in self.scrim_channels.values() if "broadcast_channel" in s)
@@ -173,8 +178,10 @@ class Guild:
 
     def scrim_channel_config(self, channel) -> dict:
         settings = self.__defaults.copy()
-        settings.update(self.scrim_channels[str(channel)])
+        channel = self.scrim_channels[str(channel)]
+        settings.update(channel)
         return settings
 
-    def queue_task(self, coro) -> asyncio.Task:
-        return self.bot.loop.create_task(coro)
+
+def queue_task(self, coro) -> asyncio.Task:
+    return self.bot.loop.create_task(coro)
