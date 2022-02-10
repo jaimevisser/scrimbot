@@ -311,8 +311,8 @@ async def kick(
     _log.info(s)
 
 
-@bot.slash_command(guild_ids=config.guilds_with_features({"SCRIMS"}))
-async def timeout(
+@bot.slash_command(name="scrim-timeout", guild_ids=config.guilds_with_features({"SCRIMS"}))
+async def scrim_timeout(
         ctx, 
         user: Option(SlashCommandOptionType.user, description="User to send into timeout."),
         days: Option(int, description="Number of days for the timeout", required=False),
