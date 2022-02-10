@@ -3,7 +3,8 @@ from datetime import timedelta
 import json
 import logging
 import os
-from typing import Optional
+from typing import Optional, Union
+from collections import namedtuple
 
 import discord
 import pytz
@@ -14,6 +15,8 @@ _log = logging.getLogger(__name__)
 
 
 class Guild:
+    Snowflake = namedtuple("Snowflake", "id")
+
     def __init__(self, id: str, config: dict, bot: discord.Bot):
         self.id = str(id)
         self.name = str(id)
@@ -168,10 +171,14 @@ class Guild:
         self.queue_task(scrim.init())
 
     def is_on_timeout(self, user: discord.Member) -> bool:
-        for r in user.roles:
-            if r.id == self.__timeout_role:
-                return True
-        return False
+        if any(r.id == self.__timeout_role for r in user.roles):
+            return True
+        else:
+            if user.id in self._timeouts:   # TODO: test this
+                # Clean up: User doesn't have timeout role but is still in 
+                # self._timeouts list: remove user from list
+                self._timeouts.remove_user(user.id)
+            return False
 
     async def update_broadcast(self):
         for b in self.broadcasts:
@@ -185,16 +192,41 @@ class Guild:
 
     def queue_task(self, coro) -> asyncio.Task:
         return self.bot.loop.create_task(coro)
-
-    def user_is_timeout(self, user_id):
-        return self._timeouts.is_timeout(user_id)
     
-    def add_user_timeout(self, user_id, duration: timedelta):
-        self._timeouts.add_user(user_id, duration)
+    def add_user_timeout(self, user_id, duration: timedelta, reason=None):
+        self._timeouts.add_user(user_id, duration, reason)
     
-    def remove_user_timeout(self, user_id):
-        self._timeouts.remove_user(user_id)
+    def remove_user_timeout(self, user_id, reason=None):
+        self._timeouts.remove_user(user_id, reason)
     
-    def user_timeout(self, user_id):
+    def get_user_timeout(self, user_id):
         "Get remaining timeout for a user or None."
         return self._timeouts.user_timeout(user_id)
+
+    async def add_timeout_role(self, user_id, reason=None):
+        if self.__timeout_role is None:
+            return
+        dc_guild = self.bot.get_guild(int(self.id))
+        member = await dc_guild.fetch_member(user_id)
+        if member:
+            role = self.Snowflake(self.__timeout_role)
+            await member.add_roles(role, reason=reason)
+    
+    async def remove_timeout_role(self, user_id, reason=None):
+        if not self.__timeout_role:
+            return
+        dc_guild = self.bot.get_guild(int(self.id))
+        member = await dc_guild.fetch_member(user_id)
+        if member:
+            role = self.Snowflake(self.__timeout_role)
+            await member.remove_roles(role, reason=reason)
+
+    def on_member_update(self, before, after):
+        # raise NotImplementedError
+        if any(role.id == self.__timeout_role for role in before.roles) \
+                and all(role.id != self.__timeout_role for role in after.roles):
+            # timeout role was removed
+            try:
+                self.remove_user_timeout(after.id)
+            except ValueError:
+                pass

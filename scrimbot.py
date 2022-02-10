@@ -21,7 +21,13 @@ logging.basicConfig(level=logging.INFO,
                     format="%(asctime)s - %(name)s - %(levelname)s:%(message)s",
                     handlers=[filehandler])
 
-bot = discord.Bot()
+
+
+# members intent needed for on_member_update() event
+intents = discord.Intents.default()
+intents.members = True
+
+bot = discord.Bot(intents=intents)
 config = scrimbot.Config()
 
 guilds = {}
@@ -322,14 +328,15 @@ async def timeout(
     total_timeout_mins = (days*24 + hours)*60 + minutes
 
     if reset:
-        if not guild.user_is_timeout(user.id):
+        if not guild.is_on_timeout(user):
             await ctx.respond(f"User is not in timeout.", ephemeral=True)
         
-        delta = guild.user_timeout(user.id)
+        delta = guild.get_user_timeout(user.id)
         try:
-            guild.remove_user_timeout(user.id)
-        except NameError:
-            await ctx.respond("User not in timeout.")   #TODO: still remove timeout role, could be artifact
+            guild.remove_user_timeout(user.id, reason)
+        except ValueError:
+            # User is not in self._timeouts, but role is removed.
+            await ctx.respond("Timeout role was removed.")
             return
 
         await ctx.respond(f"Timeout for {user} was canceled with {delta} remaining.",
@@ -352,29 +359,32 @@ async def timeout(
 
     if not total_timeout_mins:
         # no duration specified / duration is 0
-        delta = guild.user_timeout(user.id)
-        if delta is None:
-            await ctx.respond("User is not in timeout.", ephemeral=True)
+        if guild.is_on_timeout(user):
+            delta = guild.get_user_timeout(user.id)
+            msg = f"User is on timeout."
+            msg += f" Time remaining: {delta}." if delta else ""
+            await ctx.respond(msg, ephemeral=True)
         else:
-            await ctx.respond(f"User is in timeout for {delta}.", ephemeral=True)
+            await ctx.respond("User is not in timeout.", ephemeral=True)
         return
 
-    if guild.user_is_timeout(user.id):
-        delta = guild.user_timeout(user.id)
-        s = f"User is already in timeout for another {delta}."
+    if guild.is_on_timeout(user):
+        delta = guild.get_user_timeout(user.id)
+        s = f"User is already in timeout"
+        s += f"for another {delta}." if delta else "."
         await ctx.respond(s, ephemeral=True)
         return
     
     timeout = timedelta(minutes=total_timeout_mins)
-    guild.add_user_timeout(user.id, timeout)
+    guild.add_user_timeout(user.id, timeout, reason=reason)
     await ctx.respond(f"User was sent into timeout for {timeout}.",
                       ephemeral=True)
 
-    msg = f"User was sent to timeout for {timeout}."
+    msg = f"User was sent into timeout for {timeout}."
     msg += f" Reason: {reason}." if reason else ""
     guild.log.add_note(user.id, ctx.author.id, msg)
 
-    msg = f"User {user} was sent to timeout by {ctx.author} for {timeout}."
+    msg = f"User {user} was sent into timeout by {ctx.author} for {timeout}."
     msg += f" Reason: {reason}." if reason else ""
     _log.info(msg)
 
@@ -453,5 +463,11 @@ async def archive_scrim(
     guild.queue_task(ctx.channel.archive())
     await ctx.respond("Scrim thread will be archived in a short while", ephemeral=True)
 
+
+@bot.event
+async def on_member_update(before, after):
+    guild = guilds.get(after.guild.id, None)
+    if guild is not None:
+        guild.on_member_update(before, after)
 
 bot.run(config.token)
