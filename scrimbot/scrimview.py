@@ -60,11 +60,19 @@ class ScrimRunningView(discord.ui.View):
         custom_id = str(scrim.id)
         self.use = "running"
 
+        self.__button_reserve = ScrimButton(
+            label="Reserve", style=discord.ButtonStyle.blurple, custom_id=custom_id + ":reserve",
+            callback_func=self.reserve)
         self.__button_call_reserve = ScrimButton(
-            label="Call reserve", style=discord.ButtonStyle.blurple, custom_id=custom_id + ":call",
+            label="Call reserve", style=discord.ButtonStyle.gray, custom_id=custom_id + ":call",
             callback_func=self.call_reserve)
 
+        self.add_item(self.__button_reserve)
         self.add_item(self.__button_call_reserve)
+
+    async def reserve(self, interaction: discord.Interaction):
+        response = await self.__scrim.reserve(interaction.user)
+        await interaction.response.send_message(response, ephemeral=True)
 
     async def call_reserve(self, interaction: discord.Interaction):
         if not self.__scrim.contains_player(interaction.user.id):

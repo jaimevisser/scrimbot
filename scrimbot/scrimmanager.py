@@ -72,8 +72,7 @@ class ScrimManager:
 
         elif (self.scrim.time < datetime.now(self.guild.timezone) or self.scrim.started) and \
                 hasattr(self.__view, "use") and self.__view.use == "before":
-            if self.scrim.num_reserves > 0 and self.scrim.num_players > 0 and \
-                    self.scrim.get_next_reserve() is not None:
+            if self.scrim.num_players > 0:
                 self.__view = scrimbot.ScrimRunningView(self)
             else:
                 self.__view = None
@@ -165,6 +164,10 @@ class ScrimManager:
             return "Sorry buddy, you are on a timeout!"
 
         await self.__thread.wait(lambda t: t.add_user(user))
+
+        if self.scrim.started and self.scrim.contains_player(user.id):
+            return "You can't switch to reserve after the scrim started!"
+
         if not self.scrim.contains_reserve(user.id):
             self.scrim.add_reserve(user_dict(user))
             self.guild.queue_task(self.__update())
