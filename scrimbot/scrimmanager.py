@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import math
 from datetime import datetime, timedelta
 from typing import Optional
@@ -9,8 +10,11 @@ from pytz import utc
 import scrimbot
 from scrimbot import DiscordProxy, tag
 
+_log = logging.getLogger(__name__)
+
 
 class ScrimManager:
+    __KILL_CODES = {50083, 10003, 10008}
 
     def __init__(self, guild: scrimbot.Guild, scrim: scrimbot.Scrim, remove):
         self.guild = guild
@@ -29,9 +33,11 @@ class ScrimManager:
             return await self.guild.bot.fetch_channel(self.id)
 
         self.__thread: DiscordProxy[discord.Thread] = DiscordProxy(fetcher=fetch_thread,
-                                                                   on_fetch=self.on_thread_fetched)
-        self.__start_message: DiscordProxy[discord.Message] = DiscordProxy()
-        self.__content_message: DiscordProxy[discord.Message] = DiscordProxy(on_fetch=self.on_content_message_fetched)
+                                                                   on_fetch=self.on_thread_fetched,
+                                                                   handle_error=self.__handle_error)
+        self.__start_message: DiscordProxy[discord.Message] = DiscordProxy(handle_error=self.__handle_error)
+        self.__content_message: DiscordProxy[discord.Message] = DiscordProxy(on_fetch=self.on_content_message_fetched,
+                                                                             handle_error=self.__handle_error)
 
     async def init(self):
         self.__view = scrimbot.ScrimView(self)
@@ -86,9 +92,19 @@ class ScrimManager:
         self.guild.queue_task(self.guild.update_broadcast())
 
     async def __end(self):
+        self.__thread.error_handler = scrimbot.DiscordProxy.error_handler_silent  # To prevent loops
+        self.__start_message.error_handler = scrimbot.DiscordProxy.error_handler_silent
+        self.__content_message.error_handler = scrimbot.DiscordProxy.error_handler_silent
         await self.__thread.wait(lambda t: t.edit(archived=True))
         self.__remove(self)
         self.guild.queue_task(self.guild.update_broadcast())
+
+    def __handle_error(self, error: discord.HTTPException):
+        if error.code in ScrimManager.__KILL_CODES:
+            _log.info(f"Removing scrim {self.guild.name} / {self.id} because of {error}")
+            self.guild.queue_task(self.__end())
+            return True
+        return False
 
     def create_rich_embed(self) -> discord.Embed:
         name = f"Scrim *{self.scrim.name}*" if self.scrim.name is not None else "Mixed scrim"
