@@ -18,12 +18,6 @@ class OculusProfiles:
         self.__session = aiohttp.ClientSession()
 
     async def set_profile(self, user: discord.Member, profile_link: str):
-        if not re.match(
-                "https://www.oculus.com/deeplink/\\?action=view&path=%2Fprofile%2F[0-9]+"
-                "&utm_medium=share&utm_source=oculus",
-                profile_link):
-            return "That's not an oculus profile link"
-
         async with self.__session.get(profile_link) as resp:
             content = await resp.text()
 
