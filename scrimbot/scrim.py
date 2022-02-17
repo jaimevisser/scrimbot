@@ -62,6 +62,10 @@ class Scrim:
     def __role(self):
         return None if self.__settings is None or "role" not in self.__settings else tag.role(self.__settings["role"])
 
+    @property
+    def players(self):
+        return self.data["players"]
+
     def get_next_reserve(self):
         for r in self.data["reserve"]:
             if "called" not in r:

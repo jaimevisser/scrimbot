@@ -63,32 +63,43 @@ class ScrimManager:
         self.url = message.jump_url
 
     async def __update(self):
-        if await self.__thread.fetch() and self.__thread.content.archived:
-            await self.__end()
-            return
+        async def internal():
+            if await self.__thread.fetch() and self.__thread.content.archived:
+                await self.__end()
+                return
 
-        if self.scrim.time < datetime.now(self.guild.timezone) - timedelta(hours=2):
-            self.__view = None
-
-        elif (self.scrim.time < datetime.now(self.guild.timezone) or self.scrim.started) and \
-                hasattr(self.__view, "use") and self.__view.use == "before":
-            if self.scrim.num_players > 0:
-                self.__view = scrimbot.ScrimRunningView(self)
-            else:
+            if self.scrim.time < datetime.now(self.guild.timezone) - timedelta(hours=2):
                 self.__view = None
 
-        await self.__content_message.wait(
-            lambda m: m.edit(content="", embeds=[self.create_rich_embed()], view=self.__view))
-        await self.__start_message.wait(
-            lambda m: m.edit(content=self.scrim.generate_header_message()))
+            elif (self.scrim.time < datetime.now(self.guild.timezone) or self.scrim.started) and \
+                    hasattr(self.__view, "use") and self.__view.use == "before":
+                if self.scrim.num_players > 0:
+                    self.__view = scrimbot.ScrimRunningView(self)
+                else:
+                    self.__view = None
 
-        if self.scrim.time < datetime.now(self.guild.timezone) - timedelta(hours=2):
-            await self.__end()
+            profiles: scrimbot.OculusProfiles = self.guild.bot.oculus_profiles
 
-        if self.scrim.started and self.scrim.num_players == 0:
-            await self.__end()
+            embeds = [self.create_rich_embed()]
 
-        self.guild.queue_task(self.guild.update_broadcast())
+            for p in self.scrim.players:
+                embed = await profiles.get_embed(p['id'], previous=False)
+                if embed is not None:
+                    embeds.append(embed)
+
+            await self.__content_message.wait(
+                lambda m: m.edit(content="", embeds=embeds, view=self.__view))
+            await self.__start_message.wait(
+                lambda m: m.edit(content=self.scrim.generate_header_message()))
+
+            if self.scrim.time < datetime.now(self.guild.timezone) - timedelta(hours=2):
+                await self.__end()
+
+            if self.scrim.started and self.scrim.num_players == 0:
+                await self.__end()
+
+        self.guild.queue_task(internal())
+        self.guild.queue_task(self.guild.update_broadcasts())
 
     async def __end(self):
         self.__thread.error_handler = scrimbot.DiscordProxy.error_handler_silent  # To prevent loops
@@ -96,7 +107,7 @@ class ScrimManager:
         self.__content_message.error_handler = scrimbot.DiscordProxy.error_handler_silent
         await self.__thread.wait(lambda t: t.edit(archived=True))
         self.__remove(self)
-        self.guild.queue_task(self.guild.update_broadcast())
+        self.guild.queue_task(self.guild.update_broadcasts())
 
     def __handle_error(self, error: discord.HTTPException):
         if error.code in ScrimManager.__KILL_CODES:
@@ -187,15 +198,11 @@ class ScrimManager:
         self.guild.queue_task(self.__update())
 
     async def call_reserve(self) -> tuple[str, bool]:
-        callout = "No reserve available"
-        ephemeral = True
-
         reserve = self.scrim.call_next_reserve()
-        if reserve is not None:
-            callout = f"{reserve['mention']} you are needed! Get online if you can!"
-            ephemeral = False
+        if reserve is None:
+            return "No reserve available", True
         self.guild.queue_task(self.__update())
-        return callout, ephemeral
+        return f"{tag.user(reserve['id'])} you are needed! Get online if you can!", False
 
     def contains_player(self, user: int) -> bool:
         return self.scrim.contains_user(user)

@@ -23,9 +23,11 @@ logging.basicConfig(level=logging.INFO,
 
 bot = discord.Bot()
 config = scrimbot.Config()
+oculus_profiles = scrimbot.OculusProfiles(bot)
 
 guilds = {}
 
+bot.oculus_profiles = oculus_profiles
 bot.initialised = False
 
 _log = logging.getLogger("scrimbot")
@@ -323,9 +325,7 @@ async def scrim_ping(
 
 
 @bot.slash_command(name="active-scrims", guild_ids=config.guilds_with_features({"SCRIMS"}))
-async def active_scrims(
-        ctx
-):
+async def active_scrims(ctx):
     """Get a list of active scrims that haven't started yet (10 max)"""
     guild = guilds[ctx.guild_id]
 
@@ -361,9 +361,7 @@ async def time(ctx):
 
 @bot.slash_command(name="archive-scrim", guild_ids=config.guilds_with_features({"SCRIMS"}))
 @is_mod()
-async def archive_scrim(
-        ctx
-):
+async def archive_scrim(ctx):
     """Archive an open scrim thread"""
     guild = guilds[ctx.guild_id]
 
@@ -377,6 +375,29 @@ async def archive_scrim(
 
     guild.queue_task(ctx.channel.archive())
     await ctx.respond("Scrim thread will be archived in a short while", ephemeral=True)
+
+
+@bot.slash_command(name="oculus-set", guild_ids=config.guilds_with_features({"SCRIMS"}))
+async def oculus_profile_set(
+        ctx: discord.ApplicationContext,
+        profile: Option(str, "Link to your oculus profile, get it from the app!")
+):
+    await ctx.defer(ephemeral=True)
+    response = await oculus_profiles.set_profile(ctx.author, profile)
+    await ctx.respond(response, ephemeral=True)
+
+
+@bot.slash_command(name="oculus-get", guild_ids=config.guilds_with_features({"SCRIMS"}))
+async def oculus_profile_set(
+        ctx: discord.ApplicationContext,
+        user: Option(SlashCommandOptionType.user, "User you want to see a the oculus profile for")
+):
+    embed = await oculus_profiles.get_embed(user.id, user)
+    if embed is None:
+        await ctx.respond(f"No profile found for {user}", ephemeral=True)
+        return
+
+    await ctx.respond(f"Profile for {user}", embeds=[embed], ephemeral=False)
 
 
 bot.run(config.token)

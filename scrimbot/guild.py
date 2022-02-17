@@ -1,8 +1,6 @@
 import asyncio
-import json
 import logging
-import os
-from typing import Optional
+from typing import Optional, Callable
 
 import discord
 import pytz
@@ -19,9 +17,9 @@ class Guild:
         self.name = str(id)
         self.config = config
         self.bot: discord.Bot = bot
-        self.__log = self.__load_list("log")
-        self.__scrims = self.__load_list("scrims")
-        self.log = scrimbot.Log(self.__log, lambda: self.__sync(self.__log, "log"))
+        self.__log = scrimbot.Store[list](f"data/{self.id}-log.json", [])
+        self.__scrims = scrimbot.Store[list](f"data/{self.id}-scrims.json", [])
+        self.log = scrimbot.Log(self.__log.data, self.queue_callable(self.__log.sync))
         self.mod_channel: Optional[discord.TextChannel] = None
         self.timezone = pytz.timezone(self.config["timezone"])
         self.scrim_managers: list[scrimbot.ScrimManager] = []
@@ -35,7 +33,7 @@ class Guild:
         self.__defaults = self.config.get("scrim", dict()).copy()
         self.__defaults.pop("channels", None)
 
-        for scrim in self.__scrims:
+        for scrim in self.__scrims.data:
             self.__create_scrim(scrim)
         if "mod_role" in self.config:
             self.mod_roles = self.mod_roles.union({self.config["mod_role"]})
@@ -116,30 +114,12 @@ class Guild:
                 _log.error(f"{self.name}: Unable to properly load invite channel due to {error}")
         return self.__invite_channel
 
-    def __load_list(self, name: str) -> list:
-        try:
-            with open(f"data/{self.id}-{name}.json", 'r') as file:
-                return json.load(file)
-        except FileNotFoundError:
-            print("data file not found, initialising")
-            return []
-        except:
-            os.rename(f"data/{self.id}-{name}.json", f"data/bad-{self.id}-{name}.json")
-            return []
-
-    def __sync(self, data: list, name: str):
-        async def sync():
-            with open(f"data/{self.id}-{name}.json", 'w') as jsonfile:
-                json.dump(data, jsonfile)
-
-        self.queue_task(sync())
-
     def __create_scrim(self, data: dict) -> "scrimbot.ScrimManager":
         scrim = self.create_scrim(data)
         return self.__create_scrim_manager(scrim)
 
     def create_scrim(self, data: dict) -> scrimbot.Scrim:
-        return scrimbot.Scrim(data, self.timezone, self.__sync_scrims)
+        return scrimbot.Scrim(data, self.timezone, self.queue_callable(self.__scrims.sync))
 
     def __create_scrim_manager(self, scrim) -> "scrimbot.ScrimManager":
         from scrimbot.scrimmanager import ScrimManager
@@ -153,16 +133,13 @@ class Guild:
     def __remove_scrim(self, scrim):
         if scrim in self.scrim_managers:
             self.scrim_managers.remove(scrim)
-        if scrim.scrim.data in self.__scrims:
-            self.__scrims.remove(scrim.scrim.data)
-        self.__sync_scrims()
-
-    def __sync_scrims(self):
-        self.__sync(self.__scrims, "scrims")
+        if scrim.scrim.data in self.__scrims.data:
+            self.__scrims.data.remove(scrim.scrim.data)
+        self.queue_callable(self.__scrims.sync)()
 
     def create_scrim_manager(self, scrim: scrimbot.Scrim):
-        self.__scrims.append(scrim.data)
-        self.__sync_scrims()
+        self.__scrims.data.append(scrim.data)
+        self.queue_callable(self.__scrims.sync)()
         scrim = self.__create_scrim_manager(scrim)
         self.queue_task(scrim.init())
 
@@ -172,7 +149,7 @@ class Guild:
                 return True
         return False
 
-    async def update_broadcast(self):
+    async def update_broadcasts(self):
         for b in self.broadcasts:
             await b.update()
 
@@ -184,3 +161,12 @@ class Guild:
 
     def queue_task(self, coro) -> asyncio.Task:
         return self.bot.loop.create_task(coro)
+
+    def queue_callable(self, function: Callable) -> Callable:
+        async def inner():
+            function()
+
+        def queue():
+            self.queue_task(inner())
+
+        return queue
