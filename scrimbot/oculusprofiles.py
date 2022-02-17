@@ -20,11 +20,19 @@ class OculusProfiles:
         self.__session = aiohttp.ClientSession()
 
     async def set_profile(self, user: discord.Member, profile_link: str):
-        async with self.__session.get(profile_link) as resp:
-            content = await resp.text()
 
-        match = re.search("<img class=\"_96ij img\" alt=\"(.*?)\" src=\"(.*?)\" height=\"256\" width=\"256\" />",
-                          content)
+        profile_link = profile_link.replace("Check out my Oculus profile ", "")
+
+        try:
+            async with self.__session.get(profile_link) as resp:
+                content = await resp.text()
+
+            match = re.search("<img class=\"_96ij img\" alt=\"(.*?)\" src=\"(.*?)\" height=\"256\" width=\"256\" />",
+                              content)
+        except aiohttp.ClientError as err:
+            _log.error(f"Could not extract data from {profile_link}")
+            _log.exception(err)
+            return "Could not access oculus profile"
 
         if not match:
             _log.error(f"Could not extract data from {profile_link}")
