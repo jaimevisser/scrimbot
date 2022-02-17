@@ -9,6 +9,8 @@ import discord
 import scrimbot
 from scrimbot import tag
 
+_log = logging.getLogger(__name__)
+
 
 class OculusProfiles:
 
@@ -25,6 +27,7 @@ class OculusProfiles:
                           content)
 
         if not match:
+            _log.error(f"Could not extract data from {profile_link}")
             return "Could not extract data from oculus profile"
 
         oculus_name, oculus_avatar = match.groups()
