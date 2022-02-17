@@ -1,8 +1,11 @@
+import logging
 from typing import Optional
 
 import discord
 
 import scrimbot
+
+_log = logging.getLogger(__name__)
 
 
 class ScrimButton(discord.ui.Button):
@@ -16,9 +19,15 @@ class ScrimButton(discord.ui.Button):
         self.__callback_func = callback_func
 
     async def callback(self, interaction: discord.Interaction):
-        if self.__callback_func is None:
-            return
-        await self.__callback_func(interaction)
+        try:
+            if self.__callback_func is None:
+                return
+            await self.__callback_func(interaction)
+        except Exception as err:
+            _log.error("Error during interaction with button.")
+            _log.exception(err)
+            await interaction.response.send_message(
+                "Something went terribly wrong but it has been logged.", ephemeral=True)
 
 
 class ScrimView(discord.ui.View):
