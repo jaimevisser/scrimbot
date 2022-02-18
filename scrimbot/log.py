@@ -19,6 +19,9 @@ class Log:
     def add_report(self, channel: int, user: int, author: int, text: str):
         self.__add_entry("report", user, author, text, channel=channel)
 
+    def add_kick(self, channel: int, user: int, author: int, text: str):
+        self.__add_entry("kick", user, author, text, channel=channel)
+
     def __add_entry(self, type: str, user: int, author: int, text: str, **kwargs):
         entry = {
             "id": uuid.uuid4().hex[0:16],
@@ -73,5 +76,10 @@ class Log:
                 output.append(f"{start} ⚠ got reported{author} in <#{entry['channel']}>: {entry['text']}")
             elif entry["type"] == "report" and entry["author"] == user:
                 output.append(f"{start} reported <@{entry['user']}> in <#{entry['channel']}>: {entry['text']}")
+            elif entry["type"] == "kick" and entry["user"] == user:
+                output.append(f"{start} ⚠ got kicked from a scrim{author} in <#{entry['channel']}>: {entry['text']}")
+            elif entry["type"] == "kick" and entry["author"] == user:
+                output.append(
+                    f"{start} kicked <@{entry['user']}> from a scrim in <#{entry['channel']}>: {entry['text']}")
 
         return output

@@ -295,11 +295,8 @@ async def kick(
     await scrim_manager.leave(player)
     await ctx.respond("Player was removed from the scrim.", ephemeral=True)
 
-    s = f"Player was kicked from the scrim {tag.channel(scrim_manager.id)} by {ctx.author}."
-    s += f" Reason: {reason}." if reason else ""
-    guild.log.add_note(player.id,
-                       ctx.author.id,
-                       text=s)
+    guild.log.add_kick(ctx.channel.id, player.id, ctx.author.id,
+                       text=reason if reason else "No reason given")
 
     s = f"{player} was kicked from the scrim at {scrim_manager.scrim.time.isoformat()} by {ctx.author}."
     s += f" Reason: {reason}." if reason else ""
