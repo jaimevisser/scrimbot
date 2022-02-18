@@ -377,7 +377,7 @@ async def archive_scrim(ctx):
     await ctx.respond("Scrim thread will be archived in a short while", ephemeral=True)
 
 
-@bot.slash_command(name="oculus-set", guild_ids=config.guilds_with_features({"SCRIMS"}))
+@bot.slash_command(name="oculus-set", guild_ids=config.guilds_with_features({"OCULUS"}))
 async def oculus_profile_set(
         ctx: discord.ApplicationContext,
         profile: Option(str, "Oculus profile link, get it from the phone app: menu > people > blue \"share\" button")
@@ -388,7 +388,7 @@ async def oculus_profile_set(
     await ctx.respond(response, ephemeral=True)
 
 
-@bot.slash_command(name="oculus-get", guild_ids=config.guilds_with_features({"SCRIMS"}))
+@bot.slash_command(name="oculus-get", guild_ids=config.guilds_with_features({"OCULUS"}))
 async def oculus_profile_set(
         ctx: discord.ApplicationContext,
         user: Option(SlashCommandOptionType.user, "User you want to see a the oculus profile for")
