@@ -380,8 +380,9 @@ async def archive_scrim(ctx):
 @bot.slash_command(name="oculus-set", guild_ids=config.guilds_with_features({"SCRIMS"}))
 async def oculus_profile_set(
         ctx: discord.ApplicationContext,
-        profile: Option(str, "Link to your oculus profile, get it from the app!")
+        profile: Option(str, "Oculus profile link, get it from the phone app: menu > people > blue \"share\" button")
 ):
+    """Give scrimbot your oculus profile link for easy friending. Requires oculus phone app."""
     await ctx.defer(ephemeral=True)
     response = await oculus_profiles.set_profile(ctx.author, profile)
     await ctx.respond(response, ephemeral=True)
@@ -392,6 +393,7 @@ async def oculus_profile_set(
         ctx: discord.ApplicationContext,
         user: Option(SlashCommandOptionType.user, "User you want to see a the oculus profile for")
 ):
+    """Get a link to the oculus profile of a discord user."""
     embed = await oculus_profiles.get_embed(user.id, user)
     if embed is None:
         await ctx.respond(f"No profile found for {user}", ephemeral=True)
