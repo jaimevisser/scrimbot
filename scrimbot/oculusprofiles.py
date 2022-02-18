@@ -21,13 +21,13 @@ class OculusProfiles:
 
     async def set_profile(self, user: discord.Member, profile_link: str):
 
-        profile_link = profile_link.replace("Check out my Oculus profile ", "")
+        profile_link = re.sub(r'^.*?https://', r'https://', profile_link)
 
         try:
             async with self.__session.get(profile_link) as resp:
                 content = await resp.text()
 
-            match = re.search("<img class=\"_96ij img\" alt=\"(.*?)\" src=\"(.*?)\" height=\"256\" width=\"256\" />",
+            match = re.search(r'<img class="_96ij img" alt="(.*?)" src="(.*?)" height="256" width="256" />',
                               content)
         except aiohttp.ClientError as err:
             _log.error(f"Could not extract data from {profile_link}")
@@ -46,7 +46,7 @@ class OculusProfiles:
 
         aka = []
 
-        for match in re.finditer("<h3 style=\"line-height: inherit;margin: 1em;\">aka (.*?)</h3>", content):
+        for match in re.finditer(r'<h3 style="line-height: inherit;margin: 1em;">aka (.*?)</h3>', content):
             aka.append(match.groups()[0])
 
         self.__profiles.data[str(user.id)] = {
