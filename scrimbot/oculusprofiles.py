@@ -68,20 +68,24 @@ class OculusProfiles:
     def get_profile(self, user: discord.Member) -> dict:
         return self.__profiles.data.get(str(user.id), {})
 
-    async def get_embed(self, user: int, previous=True) -> Optional[discord.Embed]:
+    async def get_embed(self, user: int, long=True) -> Optional[discord.Embed]:
 
         data: Optional[dict] = self.__profiles.data.get(str(user), None)
 
         if data is None:
             return
 
+        description = f"Discord: {tag.user(user)}"
+        if long:
+            description += f"\n[Ignite stats](https://ignitevr.gg/stats/player/{data['name']})"
+
         embed = discord.Embed(title=f"Oculus profile of {data['name']}",
-                              description=f"Discord: {tag.user(user)}",
+                              description=description,
                               url=data['profile_url'],
                               colour=discord.Colour.blue()
                               )
 
-        if previous and len(data['previous_names']) > 0:
+        if long and len(data['previous_names']) > 0:
             embed.add_field(name="Previous names", value="\n".join(data['previous_names']), inline=True)
 
         embed.set_thumbnail(url=data['avatar'])
