@@ -51,15 +51,15 @@ class ScrimView(discord.ui.View):
 
     async def join(self, interaction: discord.Interaction):
         response = await self.__scrim.join(interaction.user)
-        await interaction.response.send_message(response, ephemeral=True)
+        await interaction.response.send_message(response, ephemeral=True, delete_after=5)
 
     async def reserve(self, interaction: discord.Interaction):
         response = await self.__scrim.reserve(interaction.user)
-        await interaction.response.send_message(response, ephemeral=True)
+        await interaction.response.send_message(response, ephemeral=True, delete_after=5)
 
     async def leave(self, interaction: discord.Interaction):
         await self.__scrim.leave(interaction.user)
-        await interaction.response.send_message("Removed you from the scrim.", ephemeral=True)
+        await interaction.response.send_message("Removed you from the scrim.", ephemeral=True, delete_after=5)
 
 
 class ScrimRunningView(discord.ui.View):
@@ -81,12 +81,12 @@ class ScrimRunningView(discord.ui.View):
 
     async def reserve(self, interaction: discord.Interaction):
         response = await self.__scrim.reserve(interaction.user)
-        await interaction.response.send_message(response, ephemeral=True)
+        await interaction.response.send_message(response, ephemeral=True, delete_after=5)
 
     async def call_reserve(self, interaction: discord.Interaction):
         if not self.__scrim.contains_player(interaction.user.id):
-            await interaction.response.send_message("You aren't in the scrim, buddy", ephemeral=True)
+            await interaction.response.send_message("You aren't in the scrim, buddy", ephemeral=True, delete_after=5)
             return
 
         response, ephemeral = await self.__scrim.call_reserve()
-        await interaction.response.send_message(response, ephemeral=ephemeral)
+        await interaction.response.send_message(response, ephemeral=ephemeral, delete_after=5)
