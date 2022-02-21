@@ -386,7 +386,7 @@ async def oculus_profile_set(
 
 
 @bot.slash_command(name="oculus-get", guild_ids=config.guilds_with_features({"OCULUS"}))
-async def oculus_profile_set(
+async def oculus_profile_get(
         ctx: discord.ApplicationContext,
         user: Option(SlashCommandOptionType.user, "User you want to see a the oculus profile for")
 ):

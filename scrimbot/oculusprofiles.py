@@ -23,6 +23,11 @@ class OculusProfiles:
 
         profile_link = re.sub(r'^.*?https://', r'https://', profile_link)
 
+        help_text = "\n\nAre you sure you gave an oculus share link as input? You need to be logged into your " \
+                    "Oculus/Meta account on the phone app and go to *menu* > *people*, press the blue share button " \
+                    "and copy. Use this command again, pasting that text (you can leave the text in front of the " \
+                    "profile URL, I'm smart enough to remove it myself)."
+
         try:
             async with self.__session.get(profile_link) as resp:
                 content = await resp.text()
@@ -32,11 +37,11 @@ class OculusProfiles:
         except aiohttp.ClientError as err:
             _log.error(f"Could not extract data from {profile_link}")
             _log.exception(err)
-            return "Could not access oculus profile"
+            return f"Could not access oculus profile.{help_text}"
 
         if not match:
             _log.error(f"Could not extract data from {profile_link}")
-            return "Could not extract data from oculus profile"
+            return f"Could not extract data from oculus profile.{help_text}"
 
         oculus_name, oculus_avatar = match.groups()
         oculus_avatar = html.unescape(oculus_avatar)
