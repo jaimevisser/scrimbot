@@ -312,66 +312,85 @@ async def kick(
     _log.info(s)
 
 
-@bot.slash_command(name="scrim-timeout", guild_ids=config.guilds_with_features({"SCRIMS"}))
-async def scrim_timeout(
-        ctx, 
-        user: Option(SlashCommandOptionType.user, description="User to send into timeout."),
-        duration: Option(str, "Format: '1d 5h 30m' for 1day, 5 hours and 30 mins. 'd', 'h', 'm' may be combined freely.", required=False),
-        reason: Option(str, "Reason for this action.", required=False),
-        reset: Option(bool, "Remove the timeout status for a user. This overwrites the other options.", required=False)):
-    """Send user into scrim-timeout for a specified duration or check on timeout status."""
-    guild: scrimbot.Guild = guilds[ctx.guild.id]
+scrim_timeout = bot.create_group(
+    name="scrim-timeout", 
+    guild_ids=config.guilds_with_features({"SCRIMS"})
+)
 
+@scrim_timeout.command(name="list")
+async def timeout_list(
+        ctx,
+        user: Option(SlashCommandOptionType.user, "Filter the list for a user", required=False)):
+    "Get a list of users on scrim-timeout"
+    guild: scrimbot.Guild = guilds[ctx.guild_id]
 
-    if duration is not None:
-        d_match = re.search("(-?[\d]+) ?d", duration)
-        h_match = re.search("(-?[\d]+) ?h", duration)
-        m_match = re.search("(-?[\d]+) ?m", duration)
-        d = 0 if d_match is None else d_match.groups()[0]
-        h = 0 if h_match is None else h_match.groups()[0]
-        m = 0 if m_match is None else m_match.groups()[0]
-        duration = timedelta(days=int(d), hours=int(h), minutes=int(m))
+    users = []
+    if user is None:
+        for member in ctx.guild.members:
+            if guild.is_on_timeout(member):
+                users.append((member, guild.get_user_timeout(member.id)))
+    else:
+        if guild.is_on_timeout(user):
+            users.append((user, guild.get_user_timeout(user.id)))
 
-    if reset:
-        if not guild.is_on_timeout(user):
+    if not users:
+        if user is  None:
+            await ctx.respond("No users are on timeout.", ephemeral=True)
+        else:
             await ctx.respond(f"{user} is not on timeout.", ephemeral=True)
-        
-        delta = guild.get_user_timeout(user.id)
-        try:
-            guild.remove_user_timeout(user.id, reason)
-        except ValueError:
-            # User is not in self._timeouts, but role is removed.
-            await ctx.respond("Timeout role was removed.")
-            return
-
-        await ctx.respond(f"Timeout for {user} was canceled with {delta} remaining.",
-                          ephemeral=True)
-        
-        msg = f"Timeout was cancelled with {delta} remaining."
-        msg += f" Reason: {reason}." if reason else ""
-        guild.log.add_note(user.id, ctx.author.id, msg)
-
-        msg = f"Timeout for {user} was cancelled by {ctx.author} " \
-              f"with {delta} remaining."
-        msg += f" Reason: {reason}." if reason else ""
-        _log.info(msg)
         return
     
-    if duration is None:
-        # no duration specified / duration is 0
-        if guild.is_on_timeout(user):
-            delta = guild.get_user_timeout(user.id)
-            msg = f"{user} is on timeout."
-            msg += f" Time remaining: {delta}." if delta else ""
-            await ctx.respond(msg, ephemeral=True)
+    resp = []
+    for user, delta in users:
+        if delta is None:
+            s = f"{user} is on timeout indefinitly."
         else:
-            await ctx.respond("User is not in timeout.", ephemeral=True)
+            s = f"{user} is on timeout with remaining time: {delta}."
+        resp.append(s)
+
+    await ctx.respond("\n".join(resp), ephemeral=True)
+
+
+@scrim_timeout.command(name="remove")
+async def timeout_remove(
+        ctx, 
+        user: Option(SlashCommandOptionType.user, "User to reset the timeout for."),
+        reason: Option(str, "Specify a reason.", required=False)):
+    "Reset a user's scrim-timeout."
+    guild = guilds[ctx.guild_id]
+    if not guild.is_on_timeout(user):
+        await ctx.respond(f"{user} is not on timeout.", ephemeral=True)
+        return
+    
+    delta = guild.get_user_timeout(user.id)
+    try:
+        guild.remove_user_timeout(user.id, reason)
+    except ValueError:
+        # User is not in guild._timeouts, but role is removed.
+        await ctx.respond("Timeout role was removed.")
         return
 
-    if duration <= timedelta(0):
-        # negative duration or duration is 0
-        await ctx.respond(f"Invalid duration: {duration}.\nDuration must be positive", ephemeral=True)
-        return
+    await ctx.respond(f"{user} was removed from timeout with {delta} remaining.",
+                      ephemeral=True)
+    
+    msg = f"Timeout was cancelled with {delta} remaining."
+    msg += f" Reason: {reason}." if reason else ""
+    guild.log.add_note(user.id, ctx.author.id, msg)
+
+    msg = f"Timeout for {user} was cancelled by {ctx.author} " \
+          f"with {delta} remaining."
+    msg += f" Reason: {reason}." if reason else ""
+    _log.info(msg)
+
+
+@scrim_timeout.command(name="set")
+async def timeout_set(
+        ctx, 
+        user: Option(SlashCommandOptionType.user, description="User to send into timeout."),
+        duration: Option(str, "Format: '1d 5h 30m' for 1 day, 5 hours and 30 mins. 'd', 'h', 'm' may be combined freely."),
+        reason: Option(str, "Reason for the timeout.", required=False)):
+    """Send user into scrim-timeout for a specified duration or check on timeout status."""
+    guild: scrimbot.Guild = guilds[ctx.guild_id]
 
     if guild.is_on_timeout(user):
         delta = guild.get_user_timeout(user.id)
@@ -380,6 +399,19 @@ async def scrim_timeout(
         await ctx.respond(s, ephemeral=True)
         return
     
+    d_match = re.search("(-?[\d]+) ?d", duration)
+    h_match = re.search("(-?[\d]+) ?h", duration)
+    m_match = re.search("(-?[\d]+) ?m", duration)
+    d = 0 if d_match is None else d_match.groups()[0]
+    h = 0 if h_match is None else h_match.groups()[0]
+    m = 0 if m_match is None else m_match.groups()[0]
+    duration = timedelta(days=int(d), hours=int(h), minutes=int(m))
+
+    if duration <= timedelta(0):
+        # negative duration or duration is 0
+        await ctx.respond(f"Invalid duration: {duration}.\nDuration must be positive", ephemeral=True)
+        return
+
     guild.add_user_timeout(user.id, duration, reason=reason)
     await ctx.respond(f"{user} was sent into timeout for {duration}.",
                       ephemeral=True)
