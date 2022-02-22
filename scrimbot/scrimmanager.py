@@ -83,7 +83,7 @@ class ScrimManager:
             embeds = [self.create_rich_embed()]
 
             for p in self.scrim.players[:9]:
-                embed = await profiles.get_embed(p['id'], previous=False)
+                embed = await profiles.get_embed(p['id'], long=False)
                 if embed is not None:
                     embeds.append(embed)
 
