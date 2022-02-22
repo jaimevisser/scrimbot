@@ -44,7 +44,7 @@ class TimeoutList:
     
     def _sync(self):
         self._store.data = self._to_list()
-        self._store.sync()
+        self.guild.queue_callable(self._store.sync)()
 
     def _to_list(self):
         l = []
