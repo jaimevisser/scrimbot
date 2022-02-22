@@ -174,7 +174,7 @@ class Guild:
         if any(r.id == self.__timeout_role for r in user.roles):
             return True
         else:
-            if user.id in self._timeouts:   # TODO: test this
+            if self._timeouts.contains_user(user.id):   # TODO: test this
                 # Clean up: User doesn't have timeout role but is still in 
                 # self._timeouts list: remove user from list
                 self._timeouts.remove_user(user.id)
@@ -201,7 +201,7 @@ class Guild:
     
     def get_user_timeout(self, user_id):
         "Get remaining timeout for a user or None."
-        return self._timeouts.user_timeout(user_id)
+        return self._timeouts.time_remaining(user_id)
 
     async def add_timeout_role(self, user_id, reason=None):
         if self.__timeout_role is None:
@@ -222,7 +222,6 @@ class Guild:
             await member.remove_roles(role, reason=reason)
 
     def on_member_update(self, before, after):
-        # raise NotImplementedError
         if any(role.id == self.__timeout_role for role in before.roles) \
                 and all(role.id != self.__timeout_role for role in after.roles):
             # timeout role was removed

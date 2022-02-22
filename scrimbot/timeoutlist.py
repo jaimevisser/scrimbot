@@ -4,11 +4,9 @@ import asyncio
 from datetime import datetime, timedelta, timezone
 
 
-class TimeoutList(list):
-    """List to keep track of the users in timeout. Users are represented as `NamedTuple` with id, timeout and runout_task.
-    
-    Supports:
-        `user_id in self`"""
+class TimeoutList:
+    """List to keep track of the users in timeout. Users are represented 
+    as `NamedTuple` with id, timeout and runout_task."""
     User = namedtuple("User", 
                       ["id", "timeout", "runout_task"], 
                       defaults=[None])
@@ -16,19 +14,20 @@ class TimeoutList(list):
 
     def __init__(self, guild, users):
         self.guild = guild
-        self.bot = guild.bot
-        l = []
+        self.loop = guild.bot.loop
+        self._timeouts = []
         for u in users:
-            task = self.bot.loop.create_task(self._timeout_runout(u["user_id"]))
-            l.append(self.User(u["user_id"],
-                               datetime.fromisoformat(u["timeout"]),
-                               task))
-        super().__init__(l)
+            task = self.loop.create_task(self._timeout_countdown(u["user_id"]))
+            self._timeouts.append(
+                self.User(u["user_id"],
+                          datetime.fromtimestamp(u["timeout"], timezone.utc),
+                          task)
+            )
     
-    def __contains__(self, item):
-        return any(u.id == item for u in self)
+    def contains_user(self, user_id):
+        return any(u.id == user_id for u in self._timeouts)
         
-    async def _timeout_runout(self, user_id):
+    async def _timeout_countdown(self, user_id):
         user = self._get_user_from_id(user_id)
         timeout_left = user.timeout - datetime.now(tz=timezone.utc)
         await asyncio.sleep(timeout_left.total_seconds())
@@ -46,35 +45,34 @@ class TimeoutList(list):
 
     def _to_list(self):
         l = []
-        for u in self:
+        for u in self._timeouts:
             d = {"user_id": u.id,
-                 "timeout": u.timeout.isoformat()}
+                 "timeout": u.timeout.timestamp()}
             l.append(d)
         return l
     
     def _get_user_from_id(self, user_id):
-        user = next((u for u in self if u.id == user_id), None)
+        user = next((u for u in self._timeouts if u.id == user_id), None)
         return user
 
     def add_user(self, user_id, duration, reason):
-        loop = self.bot.loop
-        loop.create_task(self._add_role(user_id, reason))
-        loop.create_task(self._remove_user_from_scrims(user_id))
-        task = loop.create_task(self._timeout_runout(user_id))
+        self.loop.create_task(self._add_role(user_id, reason))
+        self.loop.create_task(self._remove_user_from_scrims(user_id))
+        task = self.loop.create_task(self._timeout_countdown(user_id))
 
         u = self.User(user_id, datetime.now(tz=timezone.utc)+duration, task)
-        self.append(u)
+        self._timeouts.append(u)
         self._sync()
 
     def remove_user(self, user_id, reason=None):
-        self.bot.loop.create_task(self._remove_role(user_id, reason))
+        self.loop.create_task(self._remove_role(user_id, reason))
         user = self._get_user_from_id(user_id)
-        user_index = self.index(user)
-        del self[user_index]
+        user_index = self._timeouts.index(user)
+        del self._timeouts[user_index]
         self._sync()
         user.runout_task.cancel()
     
-    def user_timeout(self, user_id):
+    def time_remaining(self, user_id):
         "Get remaining timeout for a user truncated after seconds or None."
         user = self._get_user_from_id(user_id)
         if user is None:
