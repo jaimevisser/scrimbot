@@ -29,9 +29,11 @@ intents.members = True
 
 bot = discord.Bot(intents=intents)
 config = scrimbot.Config()
+oculus_profiles = scrimbot.OculusProfiles(bot)
 
 guilds = {}
 
+bot.oculus_profiles = oculus_profiles
 bot.initialised = False
 
 _log = logging.getLogger("scrimbot")
@@ -86,13 +88,14 @@ async def report(
     guild = guilds[ctx.guild_id]
 
     if guild.log.daily_report_count(ctx.author.id) > guild.config["reports_per_day"]:
-        await ctx.respond("You've sent too many reports in the past 24 hours, please wait a bit", ephemeral=True)
+        await ctx.respond("You've sent too many reports in the past 24 hours, please wait a bit", ephemeral=True,
+                          delete_after=5)
         return
 
     guild.log.add_report(ctx.channel.id, name.id, ctx.author.id, text)
     await (await guild.fetch_mod_channel()).send(f"{ctx.author.mention} would like to report {name.mention} "
                                                  f"in {ctx.channel.mention} for the following:\n{text}")
-    await ctx.respond("Report sent", ephemeral=True)
+    await ctx.respond("Report sent", ephemeral=True, delete_after=5)
 
 
 @bot.slash_command(guild_ids=config.guilds_with_features({"LOG"}))
@@ -108,7 +111,7 @@ async def note(
     guild.log.add_note(name.id, ctx.author.id, text)
     await (await guild.fetch_mod_channel()) \
         .send(f"User {name.mention} has had a note added by {ctx.author.mention}: {text}")
-    await ctx.respond("Note added", ephemeral=True)
+    await ctx.respond("Note added", ephemeral=True, delete_after=5)
 
 
 @bot.slash_command(guild_ids=config.guilds_with_features({"LOG"}))
@@ -133,7 +136,7 @@ async def warn(
     await (await guild.fetch_mod_channel()).send(
         f"User {name.mention} has been warned by {ctx.author.mention}: {text}\n"
         f"Their warning count is now at {warn_count}")
-    await ctx.respond(message, ephemeral=True)
+    await ctx.respond(message, ephemeral=True, delete_after=5)
 
 
 @bot.slash_command(guild_ids=config.guilds_with_features({"LOG"}))
@@ -148,7 +151,7 @@ async def rmlog(
     num_removed = guild.log.remove(predicate=lambda entry: entry["id"] == id)
 
     if num_removed > 0:
-        await ctx.respond("Entry removed", ephemeral=True)
+        await ctx.respond("Entry removed", ephemeral=True, delete_after=5)
     else:
         await ctx.respond("No matching entries found", ephemeral=True)
 
@@ -166,7 +169,7 @@ async def purgelog(
 
     if num_removed > 0:
         await (await guild.fetch_mod_channel()).send(f"{ctx.author.mention} purged the log of {name.mention}.")
-        await ctx.respond("Matching entries removed", ephemeral=True)
+        await ctx.respond("Matching entries removed", ephemeral=True, delete_after=5)
     else:
         await ctx.respond("No matching entries found", ephemeral=True)
 
@@ -213,6 +216,8 @@ async def scrim(
     """Start a scrim in this channel."""
     guild = guilds[ctx.guild_id]
 
+    await ctx.defer(ephemeral=True)
+
     if guild.is_on_timeout(ctx.author):
         await ctx.respond("Sorry buddy, you are on a timeout!", ephemeral=True)
         return
@@ -232,8 +237,6 @@ async def scrim(
     if int(scrim_hour) > 23 or int(scrim_minute) > 59:
         await ctx.respond("Invalid time.", ephemeral=True)
         return
-
-    await ctx.defer(ephemeral=True)
 
     guild_time = datetime.now(guild.timezone)
     scrim_time = guild_time.replace(hour=int(scrim_hour), minute=int(scrim_minute), second=0, microsecond=0)
@@ -273,7 +276,7 @@ async def scrim(
 
     guild.create_scrim_manager(scrim_obj)
 
-    await ctx.respond(f"Scrim created for {tag.time(scrim_time)} (your local time)")
+    await ctx.respond(f"Scrim created for {tag.time(scrim_time)} (your local time)", delete_after=5)
 
 
 @bot.slash_command(guild_ids=config.guilds_with_features({"SCRIMS"}))
@@ -288,23 +291,21 @@ async def kick(
     scrim_manager = guild.get_scrim_manager(ctx.channel.id)
 
     if scrim_manager is None:
-        await ctx.respond("Sorry, there is no (active) scrim in this channel.", ephemeral=True)
+        await ctx.respond("Sorry, there is no (active) scrim in this channel.", ephemeral=True, delete_after=5)
         return
     if not scrim_manager.contains_player(player.id):
-        await ctx.respond("The player is not signed up for this scrim.", ephemeral=True)
+        await ctx.respond("The player is not signed up for this scrim.", ephemeral=True, delete_after=5)
         return
     if scrim_manager.scrim.started and scrim_manager.scrim.contains_player(player.id):
-        await ctx.respond("This scrim has already started. The player can not be removed anymore.", ephemeral=True)
+        await ctx.respond("This scrim has already started. The player can not be removed anymore.", ephemeral=True,
+                          delete_after=5)
         return
 
     await scrim_manager.leave(player)
-    await ctx.respond("Player was removed from the scrim.", ephemeral=True)
+    await ctx.respond("Player was removed from the scrim.", ephemeral=True, delete_after=5)
 
-    s = f"Player was kicked from the scrim {tag.channel(scrim_manager.id)} by {ctx.author}."
-    s += f" Reason: {reason}." if reason else ""
-    guild.log.add_note(player.id,
-                       ctx.author.id,
-                       text=s)
+    guild.log.add_kick(ctx.channel.id, player.id, ctx.author.id,
+                       text=reason if reason else "No reason given")
 
     s = f"{player} was kicked from the scrim at {scrim_manager.scrim.time.isoformat()} by {ctx.author}."
     s += f" Reason: {reason}." if reason else ""
@@ -402,7 +403,7 @@ async def scrim_ping(
     scrim_manager = guild.get_scrim_manager(ctx.channel.id)
 
     if scrim_manager is None:
-        await ctx.respond("Sorry, there is no (active) scrim in this channel.", ephemeral=True)
+        await ctx.respond("Sorry, there is no (active) scrim in this channel.", ephemeral=True, delete_after=5)
         return
 
     response, ephemeral = scrim_manager.ping(text, ctx.author.id)
@@ -411,9 +412,7 @@ async def scrim_ping(
 
 
 @bot.slash_command(name="active-scrims", guild_ids=config.guilds_with_features({"SCRIMS"}))
-async def active_scrims(
-        ctx
-):
+async def active_scrims(ctx):
     """Get a list of active scrims that haven't started yet (10 max)"""
     guild = guilds[ctx.guild_id]
 
@@ -424,7 +423,7 @@ async def active_scrims(
     relevant_scrims = relevant_scrims[:10]
 
     if len(relevant_scrims) == 0:
-        await ctx.respond("No scrims currently active", ephemeral=True)
+        await ctx.respond("No scrims currently active", ephemeral=True, delete_after=5)
         return
 
     embeds = list([s.create_rich_embed() for s in relevant_scrims])
@@ -449,22 +448,45 @@ async def time(ctx):
 
 @bot.slash_command(name="archive-scrim", guild_ids=config.guilds_with_features({"SCRIMS"}))
 @is_mod()
-async def archive_scrim(
-        ctx
-):
+async def archive_scrim(ctx):
     """Archive an open scrim thread"""
     guild = guilds[ctx.guild_id]
 
     if not isinstance(ctx.channel, discord.Thread):
-        await ctx.respond("This isn't a thread", ephemeral=True)
+        await ctx.respond("This isn't a thread", ephemeral=True, delete_after=5)
         return
 
     if str(ctx.channel.parent_id) not in guild.scrim_channels.keys():
-        await ctx.respond("This isn't a thread in a scrim channel", ephemeral=True)
+        await ctx.respond("This isn't a thread in a scrim channel", ephemeral=True, delete_after=5)
         return
 
     guild.queue_task(ctx.channel.archive())
-    await ctx.respond("Scrim thread will be archived in a short while", ephemeral=True)
+    await ctx.respond("Scrim thread will be archived in a short while", ephemeral=True, delete_after=5)
+
+
+@bot.slash_command(name="oculus-set", guild_ids=config.guilds_with_features({"OCULUS"}))
+async def oculus_profile_set(
+        ctx: discord.ApplicationContext,
+        profile: Option(str, "Oculus profile link, get it from the phone app: menu > people > blue \"share\" button")
+):
+    """Give scrimbot your oculus profile link for easy friending. Requires oculus phone app."""
+    await ctx.defer(ephemeral=True)
+    response = await oculus_profiles.set_profile(ctx.author, profile)
+    await ctx.respond(response, ephemeral=True)
+
+
+@bot.slash_command(name="oculus-get", guild_ids=config.guilds_with_features({"OCULUS"}))
+async def oculus_profile_get(
+        ctx: discord.ApplicationContext,
+        user: Option(SlashCommandOptionType.user, "User you want to see a the oculus profile for")
+):
+    """Get a link to the oculus profile of a discord user."""
+    embed = await oculus_profiles.get_embed(user.id, user)
+    if embed is None:
+        await ctx.respond(f"No profile found for {user}", ephemeral=True, delete_after=5)
+        return
+
+    await ctx.respond(f"Profile for {user}", embeds=[embed], ephemeral=False)
 
 
 @bot.event

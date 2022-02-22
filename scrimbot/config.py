@@ -5,7 +5,7 @@ import yaml
 
 
 class Config:
-    ALL_FEATURES = {"TIME", "LOG", "SCRIMS", "SCRIM_PING", "REPORT"}
+    ALL_FEATURES = {"TIME", "LOG", "SCRIMS", "SCRIM_PING", "REPORT", "OCULUS"}
 
     def __init__(self):
         self.guilds: list[int] = []

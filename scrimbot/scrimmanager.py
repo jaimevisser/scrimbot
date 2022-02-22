@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import math
 from datetime import datetime, timedelta
 from typing import Optional
@@ -9,8 +10,11 @@ from pytz import utc
 import scrimbot
 from scrimbot import DiscordProxy, tag
 
+_log = logging.getLogger(__name__)
+
 
 class ScrimManager:
+    __KILL_CODES = {50083, 10003, 10008}
 
     def __init__(self, guild: scrimbot.Guild, scrim: scrimbot.Scrim, remove):
         self.guild = guild
@@ -29,9 +33,11 @@ class ScrimManager:
             return await self.guild.bot.fetch_channel(self.id)
 
         self.__thread: DiscordProxy[discord.Thread] = DiscordProxy(fetcher=fetch_thread,
-                                                                   on_fetch=self.on_thread_fetched)
-        self.__start_message: DiscordProxy[discord.Message] = DiscordProxy()
-        self.__content_message: DiscordProxy[discord.Message] = DiscordProxy(on_fetch=self.on_content_message_fetched)
+                                                                   on_fetch=self.on_thread_fetched,
+                                                                   handle_error=self.__handle_error)
+        self.__start_message: DiscordProxy[discord.Message] = DiscordProxy(handle_error=self.__handle_error)
+        self.__content_message: DiscordProxy[discord.Message] = DiscordProxy(on_fetch=self.on_content_message_fetched,
+                                                                             handle_error=self.__handle_error)
 
     async def init(self):
         self.__view = scrimbot.ScrimView(self)
@@ -57,38 +63,58 @@ class ScrimManager:
         self.url = message.jump_url
 
     async def __update(self):
-        if await self.__thread.fetch() and self.__thread.content.archived:
-            await self.__end()
-            return
+        async def internal():
+            if await self.__thread.fetch() and self.__thread.content.archived:
+                await self.__end()
+                return
 
-        if self.scrim.time < datetime.now(self.guild.timezone) - timedelta(hours=2):
-            self.__view = None
-
-        elif (self.scrim.time < datetime.now(self.guild.timezone) or self.scrim.started) and \
-                hasattr(self.__view, "use") and self.__view.use == "before":
-            if self.scrim.num_reserves > 0 and self.scrim.num_players > 0 and \
-                    self.scrim.get_next_reserve() is not None:
-                self.__view = scrimbot.ScrimRunningView(self)
-            else:
+            if self.scrim.time < datetime.now(self.guild.timezone) - timedelta(hours=2):
                 self.__view = None
 
-        await self.__content_message.wait(
-            lambda m: m.edit(content="", embeds=[self.create_rich_embed()], view=self.__view))
-        await self.__start_message.wait(
-            lambda m: m.edit(content=self.scrim.generate_header_message()))
+            elif (self.scrim.time < datetime.now(self.guild.timezone) or self.scrim.started) and \
+                    hasattr(self.__view, "use") and self.__view.use == "before":
+                if self.scrim.num_players > 0:
+                    self.__view = scrimbot.ScrimRunningView(self)
+                else:
+                    self.__view = None
 
-        if self.scrim.time < datetime.now(self.guild.timezone) - timedelta(hours=2):
-            await self.__end()
+            profiles: scrimbot.OculusProfiles = self.guild.bot.oculus_profiles
 
-        if self.scrim.started and self.scrim.num_players == 0:
-            await self.__end()
+            embeds = [self.create_rich_embed()]
 
-        self.guild.queue_task(self.guild.update_broadcast())
+            for p in self.scrim.players[:9]:
+                embed = await profiles.get_embed(p['id'], previous=False)
+                if embed is not None:
+                    embeds.append(embed)
+
+            await self.__content_message.wait(
+                lambda m: m.edit(content="", embeds=embeds, view=self.__view))
+            await self.__start_message.wait(
+                lambda m: m.edit(content=self.scrim.generate_header_message()))
+
+            if self.scrim.time < datetime.now(self.guild.timezone) - timedelta(hours=2):
+                await self.__end()
+
+            if self.scrim.started and self.scrim.num_players == 0:
+                await self.__end()
+
+        self.guild.queue_task(internal())
+        self.guild.queue_task(self.guild.update_broadcasts())
 
     async def __end(self):
+        self.__thread.error_handler = scrimbot.DiscordProxy.error_handler_silent  # To prevent loops
+        self.__start_message.error_handler = scrimbot.DiscordProxy.error_handler_silent
+        self.__content_message.error_handler = scrimbot.DiscordProxy.error_handler_silent
         await self.__thread.wait(lambda t: t.edit(archived=True))
         self.__remove(self)
-        self.guild.queue_task(self.guild.update_broadcast())
+        self.guild.queue_task(self.guild.update_broadcasts())
+
+    def __handle_error(self, error: discord.HTTPException):
+        if error.code in ScrimManager.__KILL_CODES:
+            _log.info(f"Removing scrim {self.guild.name} / {self.id} because of {error}")
+            self.guild.queue_task(self.__end())
+            return True
+        return False
 
     def create_rich_embed(self) -> discord.Embed:
         name = f"Scrim *{self.scrim.name}*" if self.scrim.name is not None else "Mixed scrim"
@@ -149,6 +175,10 @@ class ScrimManager:
             return "Sorry buddy, you are on a timeout!"
 
         await self.__thread.wait(lambda t: t.add_user(user))
+
+        if self.scrim.started and self.scrim.contains_player(user.id):
+            return "You can't switch to reserve after the scrim started!"
+
         if not self.scrim.contains_reserve(user.id):
             self.scrim.add_reserve(user_dict(user))
             self.guild.queue_task(self.__update())
@@ -168,15 +198,11 @@ class ScrimManager:
         self.guild.queue_task(self.__update())
 
     async def call_reserve(self) -> tuple[str, bool]:
-        callout = "No reserve available"
-        ephemeral = True
-
         reserve = self.scrim.call_next_reserve()
-        if reserve is not None:
-            callout = f"{reserve['mention']} you are needed! Get online if you can!"
-            ephemeral = False
+        if reserve is None:
+            return "No reserve available", True
         self.guild.queue_task(self.__update())
-        return callout, ephemeral
+        return f"{tag.user(reserve['id'])} you are needed! Get online if you can!", False
 
     def contains_player(self, user: int) -> bool:
         return self.scrim.contains_user(user)

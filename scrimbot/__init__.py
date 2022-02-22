@@ -1,3 +1,4 @@
+from scrimbot.store import Store
 from scrimbot.discordProxy import DiscordProxy
 from scrimbot.scrim import Scrim
 from scrimbot.guild import Guild
@@ -7,4 +8,5 @@ from scrimbot.log import Log
 from scrimbot import tag
 from scrimbot.scrimview import ScrimView, ScrimRunningView
 from scrimbot.broadcast import Broadcaster
-from .timeoutlist import TimeoutList
+from scrimbot.timeoutlist import TimeoutList
+from scrimbot.oculusprofiles import OculusProfiles
