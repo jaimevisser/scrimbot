@@ -8,4 +8,5 @@ from scrimbot.log import Log
 from scrimbot import tag
 from scrimbot.scrimview import ScrimView, ScrimRunningView
 from scrimbot.broadcast import Broadcaster
+from scrimbot.timeoutlist import TimeoutList
 from scrimbot.oculusprofiles import OculusProfiles

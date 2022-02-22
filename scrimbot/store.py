@@ -17,7 +17,7 @@ class Store(Generic[T]):
             with open(self.__file, 'r') as file:
                 return json.load(file)
         except FileNotFoundError:
-            print("data file not found, initialising")
+            print(f"'{self.__file}' not found, initialising")
             return self.__empty
         except:
             os.rename(self.__file, f"{self.__file}.bad")
