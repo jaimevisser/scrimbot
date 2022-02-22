@@ -12,9 +12,11 @@ class TimeoutList:
                       defaults=[None])
     Snowflake = namedtuple("Snowflake", "id")
 
-    def __init__(self, guild, users):
+    def __init__(self, guild, store):
         self.guild = guild
         self.loop = guild.bot.loop
+        self._store = store
+        users = store.data
         self._timeouts = []
         for u in users:
             task = self.loop.create_task(self._timeout_countdown(u["user_id"]))
@@ -41,7 +43,8 @@ class TimeoutList:
             await scrim_mgr.leave(user)
     
     def _sync(self):
-        self.guild._Guild__sync(self._to_list(), "timeouts")    # I dislike name mangling
+        self._store.data = self._to_list()
+        self._store.sync()
 
     def _to_list(self):
         l = []
