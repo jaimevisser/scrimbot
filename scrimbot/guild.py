@@ -25,8 +25,8 @@ class Guild:
         self.__log = scrimbot.Store[list](f"data/{self.id}-log.json", [])
         self.log = scrimbot.Log(self.__log.data, self.queue_callable(self.__log.sync))
         self.__scrims = scrimbot.Store[list](f"data/{self.id}-scrims.json", [])
-        self._timeouts_store = scrimbot.Store[list](f"data/{self.id}-timeouts.json", [])
-        self._timeouts = scrimbot.TimeoutList(self, self._timeouts_store)
+        _timeouts_store = scrimbot.Store[list](f"data/{self.id}-timeouts.json", [])
+        self._timeouts = scrimbot.TimeoutList(self, _timeouts_store)
         self.mod_channel: Optional[discord.TextChannel] = None
         self.timezone = pytz.timezone(self.config["timezone"])
         self.scrim_managers: list[scrimbot.ScrimManager] = []
