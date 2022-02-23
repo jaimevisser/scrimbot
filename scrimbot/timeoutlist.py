@@ -1,16 +1,14 @@
-from collections import namedtuple
-import discord
 import asyncio
+from collections import namedtuple
 from datetime import datetime, timedelta, timezone
 
 
 class TimeoutList:
     """List to keep track of the users in timeout. Users are represented 
     as `NamedTuple` with id, timeout and runout_task."""
-    User = namedtuple("User", 
-                      ["id", "timeout", "runout_task"], 
+    User = namedtuple("User",
+                      ["id", "timeout", "runout_task"],
                       defaults=[None])
-    Snowflake = namedtuple("Snowflake", "id")
 
     def __init__(self, guild, store):
         self.guild = guild
@@ -25,23 +23,23 @@ class TimeoutList:
                           datetime.fromtimestamp(u["timeout"], timezone.utc),
                           task)
             )
-    
+
     def contains_user(self, user_id):
         return any(u.id == user_id for u in self._timeouts)
-        
+
     async def _timeout_countdown(self, user_id):
         user = self._get_user_from_id(user_id)
         timeout_left = user.timeout - datetime.now(tz=timezone.utc)
         await asyncio.sleep(timeout_left.total_seconds())
         self.remove_user(user.id)
-    
+
     async def _remove_user_from_scrims(self, user_id):
         user = self._get_user_from_id(user_id)
         for scrim_mgr in self.guild.scrim_managers:
             if scrim_mgr.scrim.time > user.timeout:
                 continue
             await scrim_mgr.leave(user)
-    
+
     def _sync(self):
         self._store.data = self._to_list()
         self.guild.queue_callable(self._store.sync)()
@@ -53,7 +51,7 @@ class TimeoutList:
                  "timeout": u.timeout.timestamp()}
             l.append(d)
         return l
-    
+
     def _get_user_from_id(self, user_id):
         user = next((u for u in self._timeouts if u.id == user_id), None)
         return user
@@ -63,7 +61,7 @@ class TimeoutList:
         self.loop.create_task(self._remove_user_from_scrims(user_id))
         task = self.loop.create_task(self._timeout_countdown(user_id))
 
-        u = self.User(user_id, datetime.now(tz=timezone.utc)+duration, task)
+        u = self.User(user_id, datetime.now(tz=timezone.utc) + duration, task)
         self._timeouts.append(u)
         self._sync()
 
@@ -74,7 +72,7 @@ class TimeoutList:
         del self._timeouts[user_index]
         self._sync()
         user.runout_task.cancel()
-    
+
     def time_remaining(self, user_id):
         "Get remaining timeout for a user truncated after seconds or None."
         user = self._get_user_from_id(user_id)
@@ -82,7 +80,7 @@ class TimeoutList:
             return None
         timeout = user.timeout - datetime.now(tz=timezone.utc)
         return timedelta(timeout.days, timeout.seconds)
-    
+
     async def _add_role(self, user_id, reason=None):
         await self.guild.add_timeout_role(user_id, reason)
 

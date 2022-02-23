@@ -11,9 +11,10 @@ import scrimbot
 
 _log = logging.getLogger(__name__)
 
+Snowflake = namedtuple("Snowflake", "id")
+
 
 class Guild:
-    Snowflake = namedtuple("Snowflake", "id")
 
     def __init__(self, id: str, config: dict, bot: discord.Bot):
         self.id = str(id)
@@ -152,7 +153,7 @@ class Guild:
         if any(r.id == self.__timeout_role for r in user.roles):
             return True
         else:
-            if self._timeouts.contains_user(user.id):   # TODO: test this
+            if self._timeouts.contains_user(user.id):  # TODO: test this
                 # Clean up: User doesn't have timeout role but is still in 
                 # self._timeouts list: remove user from list
                 self._timeouts.remove_user(user.id)
@@ -170,10 +171,10 @@ class Guild:
 
     def add_user_timeout(self, user_id, duration: timedelta, reason=None):
         self._timeouts.add_user(user_id, duration, reason)
-    
+
     def remove_user_timeout(self, user_id, reason=None):
         self._timeouts.remove_user(user_id, reason)
-    
+
     def get_user_timeout(self, user_id):
         "Get remaining timeout for a user or None."
         return self._timeouts.time_remaining(user_id)
@@ -184,16 +185,16 @@ class Guild:
         dc_guild = self.bot.get_guild(int(self.id))
         member = await dc_guild.fetch_member(user_id)
         if member:
-            role = self.Snowflake(self.__timeout_role)
+            role = Snowflake(self.__timeout_role)
             await member.add_roles(role, reason=reason)
-    
+
     async def remove_timeout_role(self, user_id, reason=None):
         if not self.__timeout_role:
             return
         dc_guild = self.bot.get_guild(int(self.id))
         member = await dc_guild.fetch_member(user_id)
         if member:
-            role = self.Snowflake(self.__timeout_role)
+            role = Snowflake(self.__timeout_role)
             await member.remove_roles(role, reason=reason)
 
     def on_member_update(self, before, after):
@@ -207,7 +208,7 @@ class Guild:
 
     def queue_task(self, coro) -> asyncio.Task:
         return self.bot.loop.create_task(coro)
-    
+
     def queue_callable(self, function: Callable) -> Callable:
         async def inner():
             function()
