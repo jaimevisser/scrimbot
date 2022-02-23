@@ -153,7 +153,7 @@ class Guild:
         if any(r.id == self.__timeout_role for r in user.roles):
             return True
         else:
-            if self._timeouts.contains_user(user.id):  # TODO: test this
+            if self._timeouts.contains_user(user.id):
                 # Clean up: User doesn't have timeout role but is still in 
                 # self._timeouts list: remove user from list
                 self._timeouts.remove_user(user.id)
