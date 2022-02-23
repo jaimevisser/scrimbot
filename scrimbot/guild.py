@@ -1,10 +1,8 @@
 import asyncio
-from datetime import timedelta
-import json
 import logging
-import os
-from typing import Optional, Callable
 from collections import namedtuple
+from datetime import timedelta
+from typing import Optional, Callable
 
 import discord
 import pytz

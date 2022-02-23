@@ -25,7 +25,7 @@ class ScrimManager:
 
         self.id = self.scrim.id
         self.url = ""
-        self.last_ping = datetime.now(tz=guild.timezone) - timedelta(hours=1)
+        self.last_ping = datetime.now(tz=scrim.timezone) - timedelta(hours=1)
 
         self.__view: Optional[discord.ui.View] = None
 
@@ -68,10 +68,10 @@ class ScrimManager:
                 await self.__end()
                 return
 
-            if self.scrim.time < datetime.now(self.guild.timezone) - timedelta(hours=2):
+            if self.scrim.time < datetime.now(self.scrim.timezone) - timedelta(hours=2):
                 self.__view = None
 
-            elif (self.scrim.time < datetime.now(self.guild.timezone) or self.scrim.started) and \
+            elif (self.scrim.time < datetime.now(self.scrim.timezone) or self.scrim.started) and \
                     hasattr(self.__view, "use") and self.__view.use == "before":
                 if self.scrim.num_players > 0:
                     self.__view = scrimbot.ScrimRunningView(self)
@@ -92,7 +92,7 @@ class ScrimManager:
             await self.__start_message.wait(
                 lambda m: m.edit(content=self.scrim.generate_header_message()))
 
-            if self.scrim.time < datetime.now(self.guild.timezone) - timedelta(hours=2):
+            if self.scrim.time < datetime.now(self.scrim.timezone) - timedelta(hours=2):
                 await self.__end()
 
             if self.scrim.started and self.scrim.num_players == 0:
@@ -208,7 +208,7 @@ class ScrimManager:
         return self.scrim.contains_user(user)
 
     async def __start_scrim(self):
-        now = datetime.now(self.guild.timezone)
+        now = datetime.now(self.scrim.timezone)
         if self.scrim.time > now:
             seconds = math.floor((self.scrim.time - now).total_seconds())
             await asyncio.sleep(seconds)
@@ -222,7 +222,7 @@ class ScrimManager:
 
         self.guild.queue_task(self.__update())
 
-        now = datetime.now(self.guild.timezone)
+        now = datetime.now(self.scrim.timezone)
         archive_time = self.scrim.time + timedelta(hours=2, minutes=5)
         if archive_time > now:
             seconds = math.floor((archive_time - now).total_seconds())
