@@ -21,10 +21,10 @@ class Guild:
         self.name = str(id)
         self.config = config
         self.bot: discord.Bot = bot
-        __log = scrimbot.Store[list](f"data/{self.id}-log.json", [])
-        self.log = scrimbot.Log(__log.data, self.queue_callable(__log.sync))
+        __log_store = scrimbot.Store[list](f"data/{self.id}-log.json", [])
         self.__scrims = scrimbot.Store[list](f"data/{self.id}-scrims.json", [])
         _timeouts_store = scrimbot.Store[list](f"data/{self.id}-timeouts.json", [])
+        self.log = scrimbot.Log(__log_store.data, self.queue_callable(__log_store.sync))
         self._timeouts = scrimbot.TimeoutList(self, _timeouts_store)
         self.mod_channel: Optional[discord.TextChannel] = None
         self.timezone = pytz.timezone(self.config["timezone"])

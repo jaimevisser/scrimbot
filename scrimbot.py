@@ -21,8 +21,6 @@ logging.basicConfig(level=logging.INFO,
                     format="%(asctime)s - %(name)s - %(levelname)s:%(message)s",
                     handlers=[filehandler])
 
-
-
 # members intent needed for on_member_update() event
 intents = discord.Intents.default()
 intents.members = True
@@ -39,11 +37,10 @@ bot.initialised = False
 _log = logging.getLogger("scrimbot")
 
 
-
 async def init():
     for g in config.guilds:
         guilds[g] = scrimbot.Guild(str(g), config.config[str(g)], bot)
-    
+
     for guild in guilds.values():
         try:
             await guild.init()
@@ -313,15 +310,16 @@ async def kick(
 
 
 scrim_timeout = bot.create_group(
-    name="scrim-timeout", 
+    name="scrim-timeout",
     guild_ids=config.guilds_with_features({"SCRIMS"})
 )
+
 
 @scrim_timeout.command(name="list")
 async def timeout_list(
         ctx,
         user: Option(SlashCommandOptionType.user, "Filter the list for a user", required=False)):
-    "Get a list of users on scrim-timeout"
+    """Get a list of users on scrim-timeout"""
     guild: scrimbot.Guild = guilds[ctx.guild_id]
 
     users = []
@@ -334,12 +332,12 @@ async def timeout_list(
             users.append((user, guild.get_user_timeout(user.id)))
 
     if not users:
-        if user is  None:
+        if user is None:
             await ctx.respond("No users are on timeout.", ephemeral=True)
         else:
             await ctx.respond(f"{user} is not on timeout.", ephemeral=True)
         return
-    
+
     resp = []
     for user, delta in users:
         if delta is None:
@@ -353,15 +351,15 @@ async def timeout_list(
 
 @scrim_timeout.command(name="remove")
 async def timeout_remove(
-        ctx, 
+        ctx,
         user: Option(SlashCommandOptionType.user, "User to reset the timeout for."),
         reason: Option(str, "Specify a reason.", required=False)):
-    "Reset a user's scrim-timeout."
+    """Remove a user's scrim-timeout."""
     guild = guilds[ctx.guild_id]
     if not guild.is_on_timeout(user):
         await ctx.respond(f"{user} is not on timeout.", ephemeral=True)
         return
-    
+
     delta = guild.get_user_timeout(user.id)
     try:
         guild.remove_user_timeout(user.id, reason)
@@ -372,7 +370,7 @@ async def timeout_remove(
 
     await ctx.respond(f"{user} was removed from timeout with {delta} remaining.",
                       ephemeral=True)
-    
+
     msg = f"Timeout was cancelled with {delta} remaining."
     msg += f" Reason: {reason}." if reason else ""
     guild.log.add_note(user.id, ctx.author.id, msg)
@@ -385,11 +383,12 @@ async def timeout_remove(
 
 @scrim_timeout.command(name="set")
 async def timeout_set(
-        ctx, 
+        ctx,
         user: Option(SlashCommandOptionType.user, description="User to send into timeout."),
-        duration: Option(str, "Format: '1d 5h 30m' for 1 day, 5 hours and 30 mins. 'd', 'h', 'm' may be combined freely."),
+        duration: Option(str,
+                         "Format: '1d 5h 30m' for 1 day, 5 hours and 30 mins. 'd', 'h', 'm' may be combined freely."),
         reason: Option(str, "Reason for the timeout.", required=False)):
-    """Send user into scrim-timeout for a specified duration or check on timeout status."""
+    """Send user into scrim-timeout for a specified duration."""
     guild: scrimbot.Guild = guilds[ctx.guild_id]
 
     if guild.is_on_timeout(user):
@@ -398,7 +397,7 @@ async def timeout_set(
         s += f"for another {delta}." if delta else "."
         await ctx.respond(s, ephemeral=True)
         return
-    
+
     d_match = re.search(r"(-?[\d]+) ?d", duration)
     h_match = re.search(r"(-?[\d]+) ?h", duration)
     m_match = re.search(r"(-?[\d]+) ?m", duration)
@@ -526,5 +525,6 @@ async def on_member_update(before, after):
     guild = guilds.get(after.guild.id, None)
     if guild is not None:
         guild.on_member_update(before, after)
+
 
 bot.run(config.token)
