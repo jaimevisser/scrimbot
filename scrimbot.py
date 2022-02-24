@@ -399,9 +399,9 @@ async def timeout_set(
         await ctx.respond(s, ephemeral=True)
         return
     
-    d_match = re.search("(-?[\d]+) ?d", duration)
-    h_match = re.search("(-?[\d]+) ?h", duration)
-    m_match = re.search("(-?[\d]+) ?m", duration)
+    d_match = re.search(r"(-?[\d]+) ?d", duration)
+    h_match = re.search(r"(-?[\d]+) ?h", duration)
+    m_match = re.search(r"(-?[\d]+) ?m", duration)
     d = 0 if d_match is None else d_match.groups()[0]
     h = 0 if h_match is None else h_match.groups()[0]
     m = 0 if m_match is None else m_match.groups()[0]

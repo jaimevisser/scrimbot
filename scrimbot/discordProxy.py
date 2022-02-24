@@ -11,6 +11,7 @@ _log = logging.getLogger(__name__)
 
 class DiscordProxy(Generic[T]):
 
+    # noinspection PyUnusedLocal
     @classmethod
     def error_handler_silent(cls, error: discord.HTTPException) -> bool:
         return True

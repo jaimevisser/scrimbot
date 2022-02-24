@@ -45,12 +45,8 @@ class TimeoutList:
         self.guild.queue_callable(self._store.sync)()
 
     def _to_list(self):
-        l = []
-        for u in self._timeouts:
-            d = {"user_id": u.id,
-                 "timeout": u.timeout.timestamp()}
-            l.append(d)
-        return l
+        return list({"user_id": u.id,
+                     "timeout": u.timeout.timestamp()} for u in self._timeouts)
 
     def _get_user_from_id(self, user_id):
         user = next((u for u in self._timeouts if u.id == user_id), None)
@@ -74,7 +70,7 @@ class TimeoutList:
         user.runout_task.cancel()
 
     def time_remaining(self, user_id):
-        "Get remaining timeout for a user truncated after seconds or None."
+        """Get remaining timeout for a user truncated after seconds or None."""
         user = self._get_user_from_id(user_id)
         if user is None:
             return None

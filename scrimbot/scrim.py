@@ -197,7 +197,7 @@ class Scrim:
         return thread_msg, channel_msg
 
     def scrim_time(self, separator=" / "):
-        s = self.time.strftime("%H:%M")
-        l = tag.time(self.time)
+        server_time = self.time.strftime("%H:%M")
+        local_time = tag.time(self.time)
         timezone = "server" if self.timezone is None else self.timezone.zone
-        return f"{s} ({timezone}){separator}{l} (your local time)"
+        return f"{server_time} ({timezone}){separator}{local_time} (your local time)"

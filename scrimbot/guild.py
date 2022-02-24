@@ -21,8 +21,8 @@ class Guild:
         self.name = str(id)
         self.config = config
         self.bot: discord.Bot = bot
-        self.__log = scrimbot.Store[list](f"data/{self.id}-log.json", [])
-        self.log = scrimbot.Log(self.__log.data, self.queue_callable(self.__log.sync))
+        __log = scrimbot.Store[list](f"data/{self.id}-log.json", [])
+        self.log = scrimbot.Log(__log.data, self.queue_callable(__log.sync))
         self.__scrims = scrimbot.Store[list](f"data/{self.id}-scrims.json", [])
         _timeouts_store = scrimbot.Store[list](f"data/{self.id}-timeouts.json", [])
         self._timeouts = scrimbot.TimeoutList(self, _timeouts_store)
@@ -176,7 +176,7 @@ class Guild:
         self._timeouts.remove_user(user_id, reason)
 
     def get_user_timeout(self, user_id):
-        "Get remaining timeout for a user or None."
+        """Get remaining timeout for a user or None."""
         return self._timeouts.time_remaining(user_id)
 
     async def add_timeout_role(self, user_id, reason=None):
