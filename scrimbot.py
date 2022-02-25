@@ -45,7 +45,7 @@ async def init():
         try:
             await guild.init()
         except Exception as error:
-            _log.error(f"Unable to properly initialise guild {guild.id} due to {error}")
+            _log.error(f"Unable to properly initialise guild {guild.name} due to {error}")
             _log.exception(error)
 
 
@@ -219,7 +219,7 @@ async def scrim(
         await ctx.respond("Sorry buddy, you are on a timeout!", ephemeral=True)
         return
 
-    match = re.match("([0-9]{1,2})[:.]?([0-9]{2})", str(time))
+    match = re.match(r"([0-9]{1,2})[:.]?([0-9]{2})", str(time))
 
     if not match:
         await ctx.respond("Invalid time, format must be 14:00, 14.00 or 1400!", ephemeral=True)
@@ -252,6 +252,7 @@ async def scrim(
                              "name": author.display_name,
                              "avatar": author.display_avatar.url},
                   "time": scrim_timestamp,
+                  "scrim_channel": ctx.channel.id,
                   "thread": 0}
 
     if name is not None:
@@ -266,7 +267,6 @@ async def scrim(
 
     scrimname = f" {scrim_obj.name}" if scrim_obj.name is not None else ""
     thread = await message.create_thread(name=f"{scrim_hour}.{scrim_minute}{scrimname}")
-    scrim_data["thread"] = thread.id
     content = await thread.send("Loading scrim ...")
     scrim_data["thread"] = thread.id
     scrim_data["message"] = content.id
