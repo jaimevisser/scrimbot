@@ -60,6 +60,8 @@ class Guild:
         self.__guild = await self.bot.fetch_guild(int(self.id))
         self.mod_channel = await self.fetch_mod_channel()
 
+        await self._timeouts.init()
+
         if "name" not in self.config:
             self.name += " - " + self.__guild.name
 

@@ -14,9 +14,10 @@ class TimeoutList:
         self.guild = guild
         self.loop = guild.bot.loop
         self._store = store
-        users = store.data
         self._timeouts = []
-        for u in users:
+
+    async def init(self):
+        for u in self._store.data:
             task = self.loop.create_task(self._timeout_countdown(u["user_id"]))
             self._timeouts.append(
                 self.User(u["user_id"],
