@@ -36,11 +36,17 @@ bot.initialised = False
 
 _log = logging.getLogger("scrimbot")
 
+MOD_PERMISSIONS = []
+
+for g in config.guilds:
+    guilds[g] = scrimbot.Guild(str(g), config.config[str(g)], bot)
+
+for guild in guilds.values():
+    for role in guild.mod_roles:
+        MOD_PERMISSIONS.append(CommandPermission(int(role), 1, True, int(guild.id)))
+
 
 async def init():
-    for g in config.guilds:
-        guilds[g] = scrimbot.Guild(str(g), config.config[str(g)], bot)
-
     for guild in guilds.values():
         try:
             await guild.init()
@@ -309,10 +315,11 @@ async def kick(
     _log.info(s)
 
 
-scrim_timeout = bot.create_group(
+scrim_timeout = discord.SlashCommandGroup(
     name="scrim-timeout",
-    guild_ids=config.guilds_with_features({"SCRIMS"})
-)
+    description="Timeout commands",
+    guild_ids=config.guilds_with_features({"SCRIMS"}),
+    permissions=MOD_PERMISSIONS)
 
 
 @scrim_timeout.command(name="list")
@@ -422,6 +429,9 @@ async def timeout_set(
     msg = f"{user} was sent into timeout by {ctx.author} for {duration}."
     msg += f" Reason: {reason}." if reason else ""
     _log.info(msg)
+
+
+bot.add_application_command(scrim_timeout)
 
 
 @bot.slash_command(name="ping-scrim", guild_ids=config.guilds_with_features({"SCRIMS", "SCRIM_PING"}))
