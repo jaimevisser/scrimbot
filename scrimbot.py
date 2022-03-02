@@ -98,7 +98,7 @@ async def report(
     guild.log.add_report(ctx.channel.id, name.id, ctx.author.id, text)
     await (await guild.fetch_mod_channel()).send(f"{ctx.author.mention} would like to report {name.mention} "
                                                  f"in {ctx.channel.mention} for the following:\n{text}")
-    await ctx.respond("Report sent", ephemeral=True, delete_after=5)
+    await ctx.respond("Report sent", ephemeral=True)
 
 
 @bot.slash_command(guild_ids=config.guilds_with_features({"LOG"}))
@@ -114,7 +114,7 @@ async def note(
     guild.log.add_note(name.id, ctx.author.id, text)
     await (await guild.fetch_mod_channel()) \
         .send(f"User {name.mention} has had a note added by {ctx.author.mention}: {text}")
-    await ctx.respond("Note added", ephemeral=True, delete_after=5)
+    await ctx.respond("Note added", ephemeral=True)
 
 
 @bot.slash_command(guild_ids=config.guilds_with_features({"LOG"}))
@@ -139,7 +139,7 @@ async def warn(
     await (await guild.fetch_mod_channel()).send(
         f"User {name.mention} has been warned by {ctx.author.mention}: {text}\n"
         f"Their warning count is now at {warn_count}")
-    await ctx.respond(message, ephemeral=True, delete_after=5)
+    await ctx.respond(message, ephemeral=True)
 
 
 @bot.slash_command(guild_ids=config.guilds_with_features({"LOG"}))
@@ -154,7 +154,7 @@ async def rmlog(
     num_removed = guild.log.remove(predicate=lambda entry: entry["id"] == id)
 
     if num_removed > 0:
-        await ctx.respond("Entry removed", ephemeral=True, delete_after=5)
+        await ctx.respond("Entry removed", ephemeral=True)
     else:
         await ctx.respond("No matching entries found", ephemeral=True)
 
@@ -172,7 +172,7 @@ async def purgelog(
 
     if num_removed > 0:
         await (await guild.fetch_mod_channel()).send(f"{ctx.author.mention} purged the log of {name.mention}.")
-        await ctx.respond("Matching entries removed", ephemeral=True, delete_after=5)
+        await ctx.respond("Matching entries removed", ephemeral=True)
     else:
         await ctx.respond("No matching entries found", ephemeral=True)
 
@@ -248,7 +248,6 @@ async def scrim(
         scrim_time += timedelta(days=1)
 
     scrim_timestamp = math.floor(scrim_time.timestamp())
-    channel_config = guild.scrim_channel_config(ctx.channel.id)
 
     author: discord.User = ctx.author
 
@@ -267,7 +266,6 @@ async def scrim(
         scrim_data["size"] = size
 
     scrim_obj = guild.create_scrim(scrim_data)
-    scrim_obj.settings = channel_config
 
     message: discord.Message = await ctx.channel.send(scrim_obj.generate_header_message())
 
@@ -279,7 +277,7 @@ async def scrim(
 
     guild.create_scrim_manager(scrim_obj)
 
-    await ctx.respond(f"Scrim created for {tag.time(scrim_time)} (your local time)", delete_after=5)
+    await ctx.respond(f"Scrim created for {tag.time(scrim_time)} (your local time)")
 
 
 @bot.slash_command(guild_ids=config.guilds_with_features({"SCRIMS"}))
@@ -294,10 +292,10 @@ async def kick(
     scrim_manager = guild.get_scrim_manager(ctx.channel.id)
 
     if scrim_manager is None:
-        await ctx.respond("Sorry, there is no (active) scrim in this channel.", ephemeral=True, delete_after=5)
+        await ctx.respond("Sorry, there is no (active) scrim in this channel.", ephemeral=True)
         return
     if not scrim_manager.contains_player(player.id):
-        await ctx.respond("The player is not signed up for this scrim.", ephemeral=True, delete_after=5)
+        await ctx.respond("The player is not signed up for this scrim.", ephemeral=True)
         return
     if scrim_manager.scrim.started and scrim_manager.scrim.contains_player(player.id):
         await ctx.respond("This scrim has already started. The player can not be removed anymore.", ephemeral=True,
@@ -305,7 +303,7 @@ async def kick(
         return
 
     await scrim_manager.leave(player)
-    await ctx.respond("Player was removed from the scrim.", ephemeral=True, delete_after=5)
+    await ctx.respond("Player was removed from the scrim.", ephemeral=True)
 
     guild.log.add_kick(ctx.channel.id, player.id, ctx.author.id,
                        text=reason if reason else "No reason given")
@@ -444,7 +442,7 @@ async def scrim_ping(
     scrim_manager = guild.get_scrim_manager(ctx.channel.id)
 
     if scrim_manager is None:
-        await ctx.respond("Sorry, there is no (active) scrim in this channel.", ephemeral=True, delete_after=5)
+        await ctx.respond("Sorry, there is no (active) scrim in this channel.", ephemeral=True)
         return
 
     response, ephemeral = scrim_manager.ping(text, ctx.author.id)
@@ -464,7 +462,7 @@ async def active_scrims(ctx):
     relevant_scrims = relevant_scrims[:10]
 
     if len(relevant_scrims) == 0:
-        await ctx.respond("No scrims currently active", ephemeral=True, delete_after=5)
+        await ctx.respond("No scrims currently active", ephemeral=True)
         return
 
     embeds = list([s.create_rich_embed() for s in relevant_scrims])
@@ -494,15 +492,15 @@ async def archive_scrim(ctx):
     guild = guilds[ctx.guild_id]
 
     if not isinstance(ctx.channel, discord.Thread):
-        await ctx.respond("This isn't a thread", ephemeral=True, delete_after=5)
+        await ctx.respond("This isn't a thread", ephemeral=True)
         return
 
     if str(ctx.channel.parent_id) not in guild.scrim_channels.keys():
-        await ctx.respond("This isn't a thread in a scrim channel", ephemeral=True, delete_after=5)
+        await ctx.respond("This isn't a thread in a scrim channel", ephemeral=True)
         return
 
     guild.queue_task(ctx.channel.archive())
-    await ctx.respond("Scrim thread will be archived in a short while", ephemeral=True, delete_after=5)
+    await ctx.respond("Scrim thread will be archived in a short while", ephemeral=True)
 
 
 @bot.slash_command(name="oculus-set", guild_ids=config.guilds_with_features({"OCULUS"}))
@@ -524,7 +522,7 @@ async def oculus_profile_get(
     """Get a link to the oculus profile of a discord user."""
     embed = await oculus_profiles.get_embed(user.id, user)
     if embed is None:
-        await ctx.respond(f"No profile found for {user}", ephemeral=True, delete_after=5)
+        await ctx.respond(f"No profile found for {user}", ephemeral=True)
         return
 
     await ctx.respond(f"Profile for {user}", embeds=[embed], ephemeral=False)

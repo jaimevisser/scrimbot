@@ -12,7 +12,7 @@ class Scrim:
         self.time = datetime.fromtimestamp(data["time"], timezone)
         self.timezone = timezone
         self.author = self.data["author"]
-        self.__settings: Optional[dict] = None
+        self.settings: Optional[dict] = None
         self.__sync = sync
 
         if "players" not in self.data:
@@ -51,16 +51,12 @@ class Scrim:
             self.__sync()
 
     @property
-    def settings(self):
-        return self.__settings
-
-    @settings.setter
-    def settings(self, settings: dict):
-        self.__settings = settings
+    def scrim_channel(self) -> Optional[int]:
+        return self.data.get("scrim_channel", None)
 
     @property
     def __role(self):
-        return None if self.__settings is None or "role" not in self.__settings else tag.role(self.__settings["role"])
+        return None if self.settings is None or "role" not in self.settings else tag.role(self.settings["role"])
 
     @property
     def players(self):

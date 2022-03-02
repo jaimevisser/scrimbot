@@ -2,7 +2,7 @@ import asyncio
 import logging
 from collections import namedtuple
 from datetime import timedelta
-from typing import Optional, Callable
+from typing import Optional, Callable, Coroutine, Any
 
 import discord
 import pytz
@@ -122,34 +122,41 @@ class Guild:
                 _log.error(f"{self.name}: Unable to properly load invite channel due to {error}")
         return self.__invite_channel
 
-    def __create_scrim(self, data: dict) -> "scrimbot.ScrimManager":
+    def __create_scrim(self, data: dict) -> scrimbot.ScrimManager:
         scrim = self.create_scrim(data)
         return self.__create_scrim_manager(scrim)
 
     def create_scrim(self, data: dict) -> scrimbot.Scrim:
-        return scrimbot.Scrim(data, self.timezone, self.queue_callable(self.__scrims.sync))
+        scrim = scrimbot.Scrim(data, self.timezone, self.queue_callable(self.__scrims.sync))
+        if scrim.scrim_channel is not None:
+            scrim.settings = self.scrim_channel_config(scrim.scrim_channel)
+        return scrim
 
-    def __create_scrim_manager(self, scrim) -> "scrimbot.ScrimManager":
-        from scrimbot.scrimmanager import ScrimManager
-        scrim_manager = ScrimManager(self, scrim, self.__remove_scrim)
+    def __create_scrim_manager(self, scrim) -> scrimbot.ScrimManager:
+        scrim_manager = scrimbot.ScrimManager(scrim=scrim,
+                                              remove=self.__remove_scrim,
+                                              update_broadcasts=self.__queue_coroutine(self.update_broadcasts),
+                                              queue_task=self.queue_task,
+                                              bot=self.bot,
+                                              timeout_check=self.is_on_timeout)
         self.scrim_managers.append(scrim_manager)
         return scrim_manager
 
-    def get_scrim_manager(self, id: int) -> "scrimbot.ScrimManager":
+    def get_scrim_manager(self, id: int) -> scrimbot.ScrimManager:
         return next(filter(lambda s: s.id == id, self.scrim_managers), None)
 
-    def __remove_scrim(self, scrim):
-        if scrim in self.scrim_managers:
-            self.scrim_managers.remove(scrim)
-        if scrim.scrim.data in self.__scrims.data:
-            self.__scrims.data.remove(scrim.scrim.data)
+    def __remove_scrim(self, scrim_manager):
+        if scrim_manager in self.scrim_managers:
+            self.scrim_managers.remove(scrim_manager)
+        if scrim_manager.scrim.data in self.__scrims.data:
+            self.__scrims.data.remove(scrim_manager.scrim.data)
         self.queue_callable(self.__scrims.sync)()
 
     def create_scrim_manager(self, scrim: scrimbot.Scrim):
         self.__scrims.data.append(scrim.data)
         self.queue_callable(self.__scrims.sync)()
-        scrim = self.__create_scrim_manager(scrim)
-        self.queue_task(scrim.init())
+        scrim_manager = self.__create_scrim_manager(scrim)
+        self.queue_task(scrim_manager.init())
 
     def is_on_timeout(self, user: discord.Member) -> bool:
         if any(r.id == self.__timeout_role for r in user.roles):
@@ -167,7 +174,7 @@ class Guild:
 
     def scrim_channel_config(self, channel) -> dict:
         settings = self.__defaults.copy()
-        channel = self.scrim_channels[str(channel)]
+        channel = self.scrim_channels.get(str(channel), dict())
         settings.update(channel)
         return settings
 
@@ -217,5 +224,11 @@ class Guild:
 
         def queue():
             self.queue_task(inner())
+
+        return queue
+
+    def __queue_coroutine(self, function: Callable[..., Coroutine[Any, Any, Any]]) -> Callable:
+        def queue():
+            self.queue_task(function())
 
         return queue
