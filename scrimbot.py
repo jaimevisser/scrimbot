@@ -225,6 +225,12 @@ async def scrim(
         await ctx.respond("Sorry buddy, you are on a timeout!", ephemeral=True)
         return
 
+    if guild.organiser_roles is not None:
+        roles = set(r.id for r in ctx.author.roles)
+        if roles.isdisjoint(guild.organiser_roles):
+            await ctx.respond("You are not an organiser.", ephemeral=True)
+            return
+
     match = re.match(r"([0-9]{1,2})[:.]?([0-9]{2})", str(time))
 
     if not match:

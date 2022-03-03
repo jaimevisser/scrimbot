@@ -31,6 +31,7 @@ class Guild:
         self.scrim_managers: list[scrimbot.ScrimManager] = []
         self.broadcasts: list[scrimbot.Broadcaster] = []
         self.mod_roles = set()
+        self.organiser_roles = None
         self.invite: Optional[discord.Invite] = None
         self.__invite_channel: Optional[discord.TextChannel] = None
         self.__guild: Optional[discord.Guild] = None
@@ -47,6 +48,9 @@ class Guild:
             self.mod_roles = self.mod_roles.union(set(self.config["mod_roles"]))
         if "name" in self.config:
             self.name += " - " + self.config["name"]
+        if "organiser_roles" in self.config:
+            self.organiser_roles = set(self.config["organiser_roles"])
+
 
     @property
     def scrim_channels(self) -> dict[str, dict]:

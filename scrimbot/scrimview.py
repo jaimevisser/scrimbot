@@ -84,8 +84,8 @@ class ScrimRunningView(discord.ui.View):
         await interaction.response.send_message(response, ephemeral=True)
 
     async def call_reserve(self, interaction: discord.Interaction):
-        if not self.__scrim.contains_player(interaction.user.id):
-            await interaction.response.send_message("You aren't in the scrim, buddy", ephemeral=True)
+        if not self.__scrim.can_call_reserve(interaction.user):
+            await interaction.response.send_message("You can't call reserves, buddy", ephemeral=True)
             return
 
         response, ephemeral = await self.__scrim.call_reserve()
