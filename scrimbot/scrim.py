@@ -1,11 +1,11 @@
 from datetime import tzinfo, datetime
-from typing import Optional
+from typing import Optional, Callable
 
 from scrimbot import tag
 
 
 class Scrim:
-    def __init__(self, data: dict, timezone: tzinfo, sync):
+    def __init__(self, *, data: dict = None, timezone: tzinfo = None, sync: Callable = None):
         self.data = data
         self.name = data.get("name", None)
         self.size = data.get("size", 8)

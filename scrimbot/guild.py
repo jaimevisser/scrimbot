@@ -127,7 +127,7 @@ class Guild:
         return self.__create_scrim_manager(scrim)
 
     def create_scrim(self, data: dict) -> scrimbot.Scrim:
-        scrim = scrimbot.Scrim(data, self.timezone, self.queue_callable(self.__scrims.sync))
+        scrim = scrimbot.Scrim(data=data, timezone=self.timezone, sync=self.queue_callable(self.__scrims.sync))
         if scrim.scrim_channel is not None:
             scrim.settings = self.scrim_channel_config(scrim.scrim_channel)
         return scrim
