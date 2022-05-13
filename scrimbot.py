@@ -81,7 +81,7 @@ async def on_ready():
         _log.info("Bot initialised")
 
 
-@bot.slash_command(guild_ids=config.guilds_with_features({"LOG", "REPORT"}))
+@bot.slash_command()
 async def report(
         ctx,
         name: Option(SlashCommandOptionType.user, "User to report"),
@@ -101,7 +101,7 @@ async def report(
     await ctx.respond("Report sent", ephemeral=True)
 
 
-@bot.slash_command(guild_ids=config.guilds_with_features({"LOG"}))
+@bot.slash_command()
 @is_mod()
 async def note(
         ctx,
@@ -117,7 +117,7 @@ async def note(
     await ctx.respond("Note added", ephemeral=True)
 
 
-@bot.slash_command(guild_ids=config.guilds_with_features({"LOG"}))
+@bot.slash_command()
 @is_mod()
 async def warn(
         ctx,
@@ -142,7 +142,7 @@ async def warn(
     await ctx.respond(message, ephemeral=True)
 
 
-@bot.slash_command(guild_ids=config.guilds_with_features({"LOG"}))
+@bot.slash_command()
 @is_mod()
 async def rmlog(
         ctx,
@@ -159,7 +159,7 @@ async def rmlog(
         await ctx.respond("No matching entries found", ephemeral=True)
 
 
-@bot.slash_command(guild_ids=config.guilds_with_features({"LOG"}))
+@bot.slash_command()
 @is_mod()
 async def purgelog(
         ctx,
@@ -177,7 +177,7 @@ async def purgelog(
         await ctx.respond("No matching entries found", ephemeral=True)
 
 
-@bot.slash_command(guild_ids=config.guilds_with_features({"LOG"}))
+@bot.slash_command()
 @is_mod()
 async def log(
         ctx,
@@ -209,7 +209,7 @@ async def log(
     await ctx.respond(output)
 
 
-@bot.slash_command(guild_ids=config.guilds_with_features({"SCRIMS"}))
+@bot.slash_command()
 async def scrim(
         ctx,
         time: Option(str, "Time when the scrim will start, format must be 14:00, 14.00 or 1400"),
@@ -286,7 +286,7 @@ async def scrim(
     await ctx.respond(f"Scrim created for {tag.time(scrim_time)} (your local time)")
 
 
-@bot.slash_command(guild_ids=config.guilds_with_features({"SCRIMS"}))
+@bot.slash_command()
 @is_mod()
 async def kick(
         ctx,
@@ -322,7 +322,6 @@ async def kick(
 scrim_timeout = discord.SlashCommandGroup(
     name="scrim-timeout",
     description="Timeout commands",
-    guild_ids=config.guilds_with_features({"SCRIMS"}),
     permissions=MOD_PERMISSIONS)
 
 
@@ -438,7 +437,7 @@ async def timeout_set(
 bot.add_application_command(scrim_timeout)
 
 
-@bot.slash_command(name="ping-scrim", guild_ids=config.guilds_with_features({"SCRIMS", "SCRIM_PING"}))
+@bot.slash_command(name="ping-scrim")
 async def scrim_ping(
         ctx,
         text: Option(str, "Text to ping the scrim with")
@@ -456,7 +455,7 @@ async def scrim_ping(
     await ctx.respond(response, ephemeral=ephemeral)
 
 
-@bot.slash_command(name="active-scrims", guild_ids=config.guilds_with_features({"SCRIMS"}))
+@bot.slash_command(name="active-scrims")
 async def active_scrims(ctx):
     """Get a list of active scrims that haven't started yet (10 max)"""
     guild = guilds[ctx.guild_id]
@@ -476,7 +475,7 @@ async def active_scrims(ctx):
     await ctx.respond(embeds=embeds, ephemeral=True)
 
 
-@bot.slash_command(guild_ids=config.guilds_with_features({"TIME"}))
+@bot.slash_command()
 async def time(ctx):
     """Show server time"""
     guild = guilds[ctx.guild_id]
@@ -491,7 +490,7 @@ async def time(ctx):
                       f"{tag.time(server_time)}", ephemeral=True)
 
 
-@bot.slash_command(name="archive-scrim", guild_ids=config.guilds_with_features({"SCRIMS"}))
+@bot.slash_command(name="archive-scrim")
 @is_mod()
 async def archive_scrim(ctx):
     """Archive an open scrim thread"""
@@ -509,7 +508,7 @@ async def archive_scrim(ctx):
     await ctx.respond("Scrim thread will be archived in a short while", ephemeral=True)
 
 
-@bot.slash_command(name="oculus-set", guild_ids=config.guilds_with_features({"OCULUS"}))
+@bot.slash_command(name="oculus-set")
 async def oculus_profile_set(
         ctx: discord.ApplicationContext,
         profile: Option(str, "Oculus profile link, get it from the phone app: menu > people > blue \"share\" button")
@@ -520,7 +519,7 @@ async def oculus_profile_set(
     await ctx.respond(response, ephemeral=True)
 
 
-@bot.slash_command(name="oculus-get", guild_ids=config.guilds_with_features({"OCULUS"}))
+@bot.slash_command(name="oculus-get")
 async def oculus_profile_get(
         ctx: discord.ApplicationContext,
         user: Option(SlashCommandOptionType.user, "User you want to see a the oculus profile for")
