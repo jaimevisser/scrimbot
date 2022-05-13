@@ -4,7 +4,6 @@ import os
 import re
 from datetime import datetime, timedelta, timezone
 from logging.handlers import RotatingFileHandler
-from typing import Callable
 
 import discord
 from discord import Permissions
@@ -39,6 +38,7 @@ _log = logging.getLogger("scrimbot")
 for g in config.guilds:
     guilds[g] = scrimbot.Guild(str(g), config.config[str(g)], bot)
 
+
 async def init():
     for guild in guilds.values():
         try:
@@ -57,7 +57,7 @@ async def on_ready():
         _log.info("Bot initialised")
 
 
-@bot.slash_command()
+@bot.slash_command(guild_ids=config.guilds_with_features({"LOG", "REPORT"}))
 async def report(
         ctx,
         name: Option(SlashCommandOptionType.user, "User to report"),
@@ -77,7 +77,7 @@ async def report(
     await ctx.respond("Report sent", ephemeral=True)
 
 
-@bot.slash_command()
+@bot.slash_command(guild_ids=config.guilds_with_features({"LOG"}))
 @discord.default_permissions(administrator=True)
 async def note(
         ctx,
@@ -93,7 +93,7 @@ async def note(
     await ctx.respond("Note added", ephemeral=True)
 
 
-@bot.slash_command()
+@bot.slash_command(guild_ids=config.guilds_with_features({"LOG"}))
 @discord.default_permissions(administrator=True)
 async def warn(
         ctx,
@@ -118,7 +118,7 @@ async def warn(
     await ctx.respond(message, ephemeral=True)
 
 
-@bot.slash_command()
+@bot.slash_command(guild_ids=config.guilds_with_features({"LOG"}))
 @discord.default_permissions(administrator=True)
 async def rmlog(
         ctx,
@@ -135,7 +135,7 @@ async def rmlog(
         await ctx.respond("No matching entries found", ephemeral=True)
 
 
-@bot.slash_command()
+@bot.slash_command(guild_ids=config.guilds_with_features({"LOG"}))
 @discord.default_permissions(administrator=True)
 async def purgelog(
         ctx,
@@ -153,7 +153,7 @@ async def purgelog(
         await ctx.respond("No matching entries found", ephemeral=True)
 
 
-@bot.slash_command()
+@bot.slash_command(guild_ids=config.guilds_with_features({"LOG"}))
 @discord.default_permissions(administrator=True)
 async def log(
         ctx,
@@ -185,7 +185,7 @@ async def log(
     await ctx.respond(output)
 
 
-@bot.slash_command()
+@bot.slash_command(guild_ids=config.guilds_with_features({"SCRIMS"}))
 async def scrim(
         ctx,
         time: Option(str, "Time when the scrim will start, format must be 14:00, 14.00 or 1400"),
@@ -262,7 +262,7 @@ async def scrim(
     await ctx.respond(f"Scrim created for {tag.time(scrim_time)} (your local time)")
 
 
-@bot.slash_command()
+@bot.slash_command(guild_ids=config.guilds_with_features({"SCRIMS"}))
 @discord.default_permissions(administrator=True)
 async def kick(
         ctx,
@@ -298,6 +298,7 @@ async def kick(
 scrim_timeout = discord.SlashCommandGroup(
     name="scrim-timeout",
     description="Timeout commands",
+    guild_ids=config.guilds_with_features({"SCRIMS"}),
     default_member_permissions=Permissions(administrator=True))
 
 
@@ -413,7 +414,7 @@ async def timeout_set(
 bot.add_application_command(scrim_timeout)
 
 
-@bot.slash_command(name="ping-scrim")
+@bot.slash_command(name="ping-scrim", guild_ids=config.guilds_with_features({"SCRIMS", "SCRIM_PING"}))
 async def scrim_ping(
         ctx,
         text: Option(str, "Text to ping the scrim with")
@@ -431,7 +432,7 @@ async def scrim_ping(
     await ctx.respond(response, ephemeral=ephemeral)
 
 
-@bot.slash_command(name="active-scrims")
+@bot.slash_command(name="active-scrims", guild_ids=config.guilds_with_features({"SCRIMS"}))
 async def active_scrims(ctx):
     """Get a list of active scrims that haven't started yet (10 max)"""
     guild = guilds[ctx.guild_id]
@@ -451,7 +452,7 @@ async def active_scrims(ctx):
     await ctx.respond(embeds=embeds, ephemeral=True)
 
 
-@bot.slash_command()
+@bot.slash_command(guild_ids=config.guilds_with_features({"TIME"}))
 async def time(ctx):
     """Show server time"""
     guild = guilds[ctx.guild_id]
@@ -466,7 +467,7 @@ async def time(ctx):
                       f"{tag.time(server_time)}", ephemeral=True)
 
 
-@bot.slash_command(name="archive-scrim")
+@bot.slash_command(name="archive-scrim", guild_ids=config.guilds_with_features({"SCRIMS"}))
 @discord.default_permissions(administrator=True)
 async def archive_scrim(ctx):
     """Archive an open scrim thread"""
@@ -484,7 +485,7 @@ async def archive_scrim(ctx):
     await ctx.respond("Scrim thread will be archived in a short while", ephemeral=True)
 
 
-@bot.slash_command(name="oculus-set")
+@bot.slash_command(name="oculus-set", guild_ids=config.guilds_with_features({"OCULUS"}))
 async def oculus_profile_set(
         ctx: discord.ApplicationContext,
         profile: Option(str, "Oculus profile link, get it from the phone app: menu > people > blue \"share\" button")
@@ -495,7 +496,7 @@ async def oculus_profile_set(
     await ctx.respond(response, ephemeral=True)
 
 
-@bot.slash_command(name="oculus-get")
+@bot.slash_command(name="oculus-get", guild_ids=config.guilds_with_features({"OCULUS"}))
 async def oculus_profile_get(
         ctx: discord.ApplicationContext,
         user: Option(SlashCommandOptionType.user, "User you want to see a the oculus profile for")
