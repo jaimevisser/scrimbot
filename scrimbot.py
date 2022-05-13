@@ -7,7 +7,7 @@ from logging.handlers import RotatingFileHandler
 from typing import Callable
 
 import discord
-from discord import CommandPermission
+from discord import Permissions
 from discord.commands import Option
 from discord.enums import SlashCommandOptionType
 
@@ -36,15 +36,8 @@ bot.initialised = False
 
 _log = logging.getLogger("scrimbot")
 
-MOD_PERMISSIONS = []
-
 for g in config.guilds:
     guilds[g] = scrimbot.Guild(str(g), config.config[str(g)], bot)
-
-for guild in guilds.values():
-    for role in guild.mod_roles:
-        MOD_PERMISSIONS.append(CommandPermission(int(role), 1, True, int(guild.id)))
-
 
 async def init():
     for guild in guilds.values():
@@ -53,23 +46,6 @@ async def init():
         except Exception as error:
             _log.error(f"Unable to properly initialise guild {guild.name} due to {error}")
             _log.exception(error)
-
-
-def is_mod():
-    """a decorator to add moderator role permissions to slash commands"""
-
-    def decorator(func: Callable):
-        # Create __app_cmd_perms__
-        if not hasattr(func, '__app_cmd_perms__'):
-            func.__app_cmd_perms__ = []
-
-        for guild in guilds.values():
-            for role in guild.mod_roles:
-                func.__app_cmd_perms__.append(CommandPermission(int(role), 1, True, int(guild.id)))
-
-        return func
-
-    return decorator
 
 
 @bot.event
@@ -102,7 +78,7 @@ async def report(
 
 
 @bot.slash_command()
-@is_mod()
+@discord.default_permissions(administrator=True)
 async def note(
         ctx,
         name: Option(SlashCommandOptionType.user, "User to make a note for"),
@@ -118,7 +94,7 @@ async def note(
 
 
 @bot.slash_command()
-@is_mod()
+@discord.default_permissions(administrator=True)
 async def warn(
         ctx,
         name: Option(SlashCommandOptionType.user, "User to make a note for"),
@@ -143,7 +119,7 @@ async def warn(
 
 
 @bot.slash_command()
-@is_mod()
+@discord.default_permissions(administrator=True)
 async def rmlog(
         ctx,
         id: Option(str, "ID of the entry to remove, it's the gibberish in square brackets [] in the log")
@@ -160,7 +136,7 @@ async def rmlog(
 
 
 @bot.slash_command()
-@is_mod()
+@discord.default_permissions(administrator=True)
 async def purgelog(
         ctx,
         name: Option(SlashCommandOptionType.user, "User to clear the log for")
@@ -178,7 +154,7 @@ async def purgelog(
 
 
 @bot.slash_command()
-@is_mod()
+@discord.default_permissions(administrator=True)
 async def log(
         ctx,
         name: Option(SlashCommandOptionType.user, "User to display the log for")
@@ -287,7 +263,7 @@ async def scrim(
 
 
 @bot.slash_command()
-@is_mod()
+@discord.default_permissions(administrator=True)
 async def kick(
         ctx,
         player: Option(SlashCommandOptionType.user, "User you want to kick from this scrim."),
@@ -322,7 +298,7 @@ async def kick(
 scrim_timeout = discord.SlashCommandGroup(
     name="scrim-timeout",
     description="Timeout commands",
-    permissions=MOD_PERMISSIONS)
+    default_member_permissions=Permissions(administrator=True))
 
 
 @scrim_timeout.command(name="list")
@@ -491,7 +467,7 @@ async def time(ctx):
 
 
 @bot.slash_command(name="archive-scrim")
-@is_mod()
+@discord.default_permissions(administrator=True)
 async def archive_scrim(ctx):
     """Archive an open scrim thread"""
     guild = guilds[ctx.guild_id]
