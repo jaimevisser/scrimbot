@@ -19,3 +19,19 @@ This should be a yaml or json file containing the settings for the bot. Settings
 to support multiple servers you can add multiple of these blocks. A [config file example](examples/config.yaml) can be
 found in the examples.
 
+### Discord guild/server setup
+
+Go to `Server Settings > Integrations > Bots and Apps > scrimbot > Manage` and set up the slash commands. The following
+are some sane suggestions.
+
+#### Everyone/all channels
+`/active-scrims`, `/report`, `/oculus-set`, `/oculus-get`, `/time`
+
+#### Everyone/scrim channel(s)
+`/ping-scrim`, `/scrim`
+
+#### Moderator role/scrim channel(s)
+`/archive-scrim`, `/kick`
+
+#### Moderator role/all channels
+`/log`, `/note`, `/warn`, `/purgelog`, `/rmlog`, `/scrim-timeout`
