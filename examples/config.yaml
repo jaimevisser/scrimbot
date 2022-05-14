@@ -16,7 +16,4 @@
         #ping_cooldown: 10 # (Optional) Overrides general ping cooldown for this channel
         broadcast_channel: 933821696748711986 # (Optional) Announcement channel to broadcast the list of scrims
   mod_channel: 916220711507472425 # Channel where scrimbot puts out moderator messages
-  mod_roles: # Define a list of moderator roles that can use moderator functions
-    - 925681625017253949
-  #mod_role: 925681625017253900 # Define a single moderator role
   reports_per_day: 2 # Number of reports per day allowed

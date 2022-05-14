@@ -30,7 +30,6 @@ class Guild:
         self.timezone = pytz.timezone(self.config["timezone"])
         self.scrim_managers: list[scrimbot.ScrimManager] = []
         self.broadcasts: list[scrimbot.Broadcaster] = []
-        self.mod_roles = set()
         self.organiser_roles = None
         self.invite: Optional[discord.Invite] = None
         self.__invite_channel: Optional[discord.TextChannel] = None
@@ -42,10 +41,6 @@ class Guild:
 
         for scrim in self.__scrims.data:
             self.__create_scrim(scrim)
-        if "mod_role" in self.config:
-            self.mod_roles = self.mod_roles.union({self.config["mod_role"]})
-        if "mod_roles" in self.config:
-            self.mod_roles = self.mod_roles.union(set(self.config["mod_roles"]))
         if "name" in self.config:
             self.name += " - " + self.config["name"]
         if "organiser_roles" in self.config:
