@@ -102,6 +102,7 @@ class Scrim:
                 if "auto" in auto:
                     del auto["auto"]
                 self.add_player(auto)
+                return auto
 
     def add_reserve(self, reserve):
         self.data["reserve"].append(reserve)

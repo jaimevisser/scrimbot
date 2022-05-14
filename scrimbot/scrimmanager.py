@@ -196,9 +196,12 @@ class ScrimManager:
             return "You are already a reserve, turned off auto-join if it was on."
 
     async def leave(self, user: discord.Member):
-        self.scrim.remove_player(user.id)
+        added = self.scrim.remove_player(user.id)
         self.scrim.remove_reserve(user.id)
         self.__queue_task(self.__update())
+        if added is not None:
+            await self.__thread.wait(
+                lambda t: t.send(f"Hey {added['mention']}, you got automatically added to the scrim!"))
 
     async def call_reserve(self) -> tuple[str, bool]:
         reserve = self.scrim.call_next_reserve()
