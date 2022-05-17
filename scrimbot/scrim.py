@@ -7,7 +7,7 @@ from scrimbot import tag
 class Scrim:
     def __init__(self, *, data: dict = None, timezone: tzinfo = None, sync: Callable = None):
         self.data = data
-        self.name = data.get("name", None)
+        self.__name = data.get("name", None)
         self.size = data.get("size", 8)
         self.time = datetime.fromtimestamp(data["time"], timezone)
         self.timezone = timezone
@@ -24,6 +24,11 @@ class Scrim:
     @property
     def id(self):
         return self.data["thread"]
+
+    @property
+    def name(self):
+        prefix = "Scrim" if self.settings is None or "prefix" not in self.settings else self.settings["prefix"]
+        return f"{prefix}{f' *{self.__name}*' if self.__name is not None else ''}"
 
     @property
     def num_players(self):
@@ -143,7 +148,7 @@ class Scrim:
             count = f"**({self.num_players}/{self.size})** "
 
         role = f"{self.__role}! " if self.__role is not None else ""
-        return f"{role}Scrim {f'*{self.name}* ' if self.name is not None else ''}" \
+        return f"{role} {self.name} " \
                f"at {self.scrim_time()} {count}" \
                f"started by {tag.user(self.author['id'])}"
 

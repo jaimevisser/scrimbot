@@ -251,7 +251,7 @@ async def scrim(
 
     message: discord.Message = await ctx.channel.send(scrim_obj.generate_header_message())
 
-    scrimname = f" {scrim_obj.name}" if scrim_obj.name is not None else ""
+    scrimname = f" {name}" if name is not None else ""
     thread = await message.create_thread(name=f"{scrim_hour}.{scrim_minute}{scrimname}")
     content = await thread.send("Loading scrim ...")
     scrim_data["thread"] = thread.id
