@@ -1,11 +1,12 @@
 from datetime import tzinfo, datetime
 from typing import Optional, Callable
 
+import scrimbot
 from scrimbot import tag
 
 
 class Scrim:
-    def __init__(self, *, data: dict = None, timezone: tzinfo = None, sync: Callable = None):
+    def __init__(self, *, data: dict = None, timezone: tzinfo = None, sync: Callable = None, log: scrimbot.Log = None):
         self.data = data
         self.__name = data.get("name", None)
         self.size = data.get("size", 8)
@@ -14,6 +15,7 @@ class Scrim:
         self.author = self.data["author"]
         self.settings: Optional[dict] = None
         self.__sync = sync
+        self.__log = log
 
         if "players" not in self.data:
             self.data["players"] = []
@@ -197,6 +199,13 @@ class Scrim:
                           f"We need at least {shortage} player(s)."
 
         return thread_msg, channel_msg
+
+    def log_scrimmers(self):
+        if not self.full:
+            return
+
+        for player in self.data["players"]:
+            self.__log.add_scrim(user=player["id"], text=self.name)
 
     def scrim_time(self, separator=" / "):
         server_time = self.time.strftime("%H:%M")

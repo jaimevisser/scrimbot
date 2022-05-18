@@ -404,7 +404,7 @@ async def timeout_set(
 
     msg = f"User was sent into timeout for {duration}."
     msg += f" Reason: {reason}." if reason else ""
-    guild.log.add_note(user.id, ctx.author.id, msg)
+    guild.log.add_timeout(user.id, ctx.author.id, msg)
 
     msg = f"{user} was sent into timeout by {ctx.author} for {duration}."
     msg += f" Reason: {reason}." if reason else ""

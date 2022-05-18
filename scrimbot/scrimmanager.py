@@ -230,6 +230,7 @@ class ScrimManager:
             if channel_msg is not None:
                 await self.__start_message.wait(lambda s: s.reply(channel_msg))
             self.scrim.started = True
+            self.scrim.log_scrimmers()
 
         self.__queue_task(self.__update())
 

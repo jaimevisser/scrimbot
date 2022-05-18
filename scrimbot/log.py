@@ -22,6 +22,12 @@ class Log:
     def add_kick(self, channel: int, user: int, author: int, text: str):
         self.__add_entry("scrim-kick", user, author, text, channel=channel)
 
+    def add_timeout(self, user: int, author: int, text: str):
+        self.__add_entry("timeout", user, author, text)
+
+    def add_scrim(self, user: int, text: str):
+        self.__add_entry("scrim", user, 0, text)
+
     def __add_entry(self, type: str, user: int, author: int, text: str, **kwargs):
         entry = {
             "id": uuid.uuid4().hex[0:16],
@@ -54,7 +60,7 @@ class Log:
             self.__sync()
         return len(to_remove)
 
-    ALL = ["warning", "note", "report"]
+    ALL = ["warning", "note", "report", "scrim-kick", "timeout", "scrim"]
 
     def print_log(self, user: int, types=None, authors=False) -> list:
         if types is None:
@@ -81,5 +87,11 @@ class Log:
             elif entry["type"] == "scrim-kick" and entry["author"] == user:
                 output.append(
                     f"{start} kicked <@{entry['user']}> from a scrim in <#{entry['channel']}>: {entry['text']}")
+            elif entry["type"] == "timeout" and entry["user"] == user:
+                output.append(f"{start} ⚠ was put on a timeout{author}: {entry['text']}")
+            elif entry["type"] == "timeout" and entry["author"] == user:
+                output.append(f"{start} timed out <@{entry['user']}>: {entry['text']}")
+            elif entry["type"] == "scrim" and entry["user"] == user:
+                output.append(f"{start} (probably) played a scrim: {entry['text']}")
 
         return output

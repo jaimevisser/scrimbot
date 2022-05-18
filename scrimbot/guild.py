@@ -46,7 +46,6 @@ class Guild:
         if "organiser_roles" in self.config:
             self.organiser_roles = set(self.config["organiser_roles"])
 
-
     @property
     def scrim_channels(self) -> dict[str, dict]:
         channels = self.config.get("scrim", dict()).get("channels", dict())
@@ -126,7 +125,8 @@ class Guild:
         return self.__create_scrim_manager(scrim)
 
     def create_scrim(self, data: dict) -> scrimbot.Scrim:
-        scrim = scrimbot.Scrim(data=data, timezone=self.timezone, sync=self.queue_callable(self.__scrims.sync))
+        scrim = scrimbot.Scrim(data=data, timezone=self.timezone, sync=self.queue_callable(self.__scrims.sync),
+                               log=self.log)
         if scrim.scrim_channel is not None:
             scrim.settings = self.scrim_channel_config(scrim.scrim_channel)
         return scrim
