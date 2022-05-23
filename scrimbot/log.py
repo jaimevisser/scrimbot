@@ -44,6 +44,15 @@ class Log:
     def warning_count(self, user: int) -> int:
         return len([d for d in self.__log if d['type'] == "warning" and d['user'] == user])
 
+    def weekly_warning_count(self, user:int) -> int:
+        start_time = (datetime.now(timezone.utc) - timedelta(days=7)).timestamp()
+
+        return len([d for d in self.__log
+                    if d['type'] == "warning" and d['user'] == user and d['time'] > start_time])
+
+    def scrim_count(self, user: int) -> int:
+        return len([d for d in self.__log if d['type'] == "scrim" and d['user'] == user])
+
     def daily_report_count(self, user: int) -> int:
         start_time = (datetime.now(timezone.utc) - timedelta(days=1)).timestamp()
 

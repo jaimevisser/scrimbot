@@ -176,6 +176,10 @@ async def log(
 
     output = f"**Log for {name}**"
 
+    entries.append(
+        f"**Warnings / last 7 days:** {guild.log.warning_count(name.id)}/{guild.log.weekly_warning_count(name.id)}")
+    entries.append(f"**Number of played scrims:** {guild.log.scrim_count(name.id)}")
+
     for entry in entries:
         if len(output + entry) > 1800:
             await ctx.respond(output)
