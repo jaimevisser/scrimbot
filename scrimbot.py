@@ -11,7 +11,7 @@ from discord.commands import Option
 from discord.enums import SlashCommandOptionType
 
 import scrimbot
-from scrimbot import tag
+from scrimbot import tag, ScrimCreateDialog
 
 os.makedirs("data/logs", exist_ok=True)
 filehandler = RotatingFileHandler(filename="data/logs/scrimbot.log", mode="w", maxBytes=1024 * 50, backupCount=4)
@@ -191,7 +191,7 @@ async def log(
 
 @bot.slash_command(guild_ids=config.guilds_with_features({"SCRIMS"}))
 async def scrim(
-        ctx,
+        ctx: discord.ext.commands.Context,
         time: Option(str, "Time when the scrim will start, format must be 14:00, 14.00 or 1400"),
         name: Option(str, "Give this scrim a name", required=False),
         size: Option(int, "Number of players for this scrim, the default is 8", required=False)
@@ -253,6 +253,19 @@ async def scrim(
 
     scrim_obj = guild.create_scrim(scrim_data)
 
+    async def respond(text):
+        await ctx.respond(text)
+
+    if guild.has_overlapping_scrims(scrim_obj):
+        view = ScrimCreateDialog()
+        await ctx.respond("Your scrim would overlap with an existing scrim, are you sure you want to create it?", view=view)
+        await view.wait()
+        respond = view.respond
+
+        if not view.value:
+            await respond("No scrim created")
+            return
+
     message: discord.Message = await ctx.channel.send(scrim_obj.generate_header_message())
 
     scrimname = f" {name}" if name is not None else ""
@@ -263,7 +276,7 @@ async def scrim(
 
     guild.create_scrim_manager(scrim_obj)
 
-    await ctx.respond(f"Scrim created for {tag.time(scrim_time)} (your local time)")
+    await respond(f"Scrim created for {tag.time(scrim_time)} (your local time)")
 
 
 @bot.slash_command(guild_ids=config.guilds_with_features({"SCRIMS"}))

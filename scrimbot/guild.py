@@ -231,3 +231,12 @@ class Guild:
             self.queue_task(function())
 
         return queue
+
+    def has_overlapping_scrims(self, scrim: scrimbot.Scrim) -> bool:
+        earliest = scrim.time - timedelta(hours=1)
+        latest = scrim.time + timedelta(hours=1)
+        for scrim_manager in self.scrim_managers:
+            if earliest < scrim_manager.scrim.time < latest and \
+                    scrim.scrim_channel == scrim_manager.scrim.scrim_channel:
+                return True
+        return False

@@ -18,7 +18,7 @@ class ScrimManager:
 
     def __init__(self, *, scrim: scrimbot.Scrim, update_broadcasts: Callable, queue_task: Callable,
                  remove: Callable, bot: discord.Bot, timeout_check: Callable[[discord.Member], bool]):
-        self.scrim = scrim
+        self.scrim: scrimbot.Scrim = scrim
         self.__bot = bot
         self.__update_broadcasts = update_broadcasts
         self.__queue_task = queue_task
