@@ -11,7 +11,7 @@ from discord.commands import Option
 from discord.enums import SlashCommandOptionType
 
 import scrimbot
-from scrimbot import tag, ScrimCreateDialog
+from scrimbot import tag, YesNoView
 
 os.makedirs("data/logs", exist_ok=True)
 filehandler = RotatingFileHandler(filename="data/logs/scrimbot.log", mode="w", maxBytes=1024 * 50, backupCount=4)
@@ -257,7 +257,7 @@ async def scrim(
         await ctx.respond(text)
 
     if guild.has_overlapping_scrims(scrim_obj):
-        view = ScrimCreateDialog()
+        view = YesNoView()
         await ctx.respond("Your scrim would overlap with an existing scrim, are you sure you want to create it?", view=view)
         await view.wait()
         respond = view.respond

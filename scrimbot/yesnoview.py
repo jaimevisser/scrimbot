@@ -1,7 +1,7 @@
 import discord.ui
 
 
-class ScrimCreateDialog(discord.ui.View):
+class YesNoView(discord.ui.View):
 
     def __init__(self):
         super().__init__()
