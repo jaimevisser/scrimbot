@@ -34,3 +34,6 @@ class Config:
 
     def guilds_with_features(self, features: set[str]) -> list[int]:
         return list(k for k, v in self.__features.items() if v.issuperset(features))
+
+
+config = Config()
