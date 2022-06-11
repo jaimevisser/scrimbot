@@ -32,7 +32,7 @@ class OculusProfiles:
             async with self.__session.get(profile_link) as resp:
                 content = await resp.text()
 
-            match = re.search(r'<img class="_96ij img" alt="(.*?)" src="(.*?)" height="256" width="256" />',
+            match = re.search(r'<img class=".*? img" alt="(.*?)" src="([^"]*?)" height=".*?" width=".*?" />',
                               content)
         except aiohttp.ClientError as err:
             _log.error(f"Could not extract data from {profile_link}")
