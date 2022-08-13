@@ -148,3 +148,18 @@ class Moderation(Cog):
             else:
                 output += "\n" + entry
         await ctx.respond(output)
+
+    @slash_command(guild_ids=config.guilds_with_features({"LOG"}))
+    async def scrim_top(self, ctx):
+        """Display the list of all users that played scrims"""
+        guild = self.guilds[ctx.guild_id]
+        entries = guild.log.print_scrim_top()
+
+        output = f"**Scrim top**"
+        for entry in entries:
+            if len(output + entry) > 1800:
+                await ctx.respond(output)
+                output = entry
+            else:
+                output += "\n" + entry
+        await ctx.respond(output)

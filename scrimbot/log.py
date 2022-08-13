@@ -106,7 +106,6 @@ class Log:
         return output
 
     def print_warning_top(self, recent=False) -> list:
-
         selected = "recents" if recent else "warns"
 
         users = set([x["user"] for x in self.__log if x["type"] == "warning"])
@@ -117,3 +116,12 @@ class Log:
         } for x in users]
         warning_list.sort(key=lambda x: x[selected], reverse=True)
         return [f"<@{x['user']}> {x['warns']}/{x['recents']}" for x in warning_list]
+
+    def print_scrim_top(self) -> list:
+        users = set([x["user"] for x in self.__log if x["type"] == "scrim"])
+        warning_list = [{
+            "user": x,
+            "scrims": self.scrim_count(x)
+        } for x in users]
+        warning_list.sort(key=lambda x: x["scrims"], reverse=True)
+        return [f"<@{x['user']}> {x['scrims']}" for x in warning_list]
