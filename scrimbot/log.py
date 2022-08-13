@@ -44,7 +44,7 @@ class Log:
     def warning_count(self, user: int) -> int:
         return len([d for d in self.__log if d['type'] == "warning" and d['user'] == user])
 
-    def weekly_warning_count(self, user:int) -> int:
+    def weekly_warning_count(self, user: int) -> int:
         start_time = (datetime.now(timezone.utc) - timedelta(days=7)).timestamp()
 
         return len([d for d in self.__log
@@ -104,3 +104,16 @@ class Log:
                 output.append(f"{start} (probably) played a scrim: {entry['text']}")
 
         return output
+
+    def print_warning_top(self, recent=False) -> list:
+
+        selected = "recents" if recent else "warns"
+
+        users = set([x["user"] for x in self.__log if x["type"] == "warning"])
+        warning_list = [{
+            "user": x,
+            "warns": self.warning_count(x),
+            "recents": self.weekly_warning_count(x)
+        } for x in users]
+        warning_list.sort(key=lambda x: x[selected], reverse=True)
+        return [f"<@{x['user']}> {x['warns']}/{x['recents']}" for x in warning_list]

@@ -130,3 +130,21 @@ class Moderation(Cog):
             else:
                 output += "\n" + entry
         await ctx.respond(output)
+
+    @slash_command(guild_ids=config.guilds_with_features({"LOG"}))
+    @discord.default_permissions(administrator=True)
+    async def warn_list(self, ctx,
+                        sorting: Option(str, "Sorting to apply", choices=["recent", "all"])
+                        ):
+        """Display the list of all users that have warnings."""
+        guild = self.guilds[ctx.guild_id]
+        entries = guild.log.print_warning_top(recent=(sorting == "recent"))
+
+        output = f"**Warning top**\n *(all time/recent)*"
+        for entry in entries:
+            if len(output + entry) > 1800:
+                await ctx.respond(output)
+                output = entry
+            else:
+                output += "\n" + entry
+        await ctx.respond(output)
