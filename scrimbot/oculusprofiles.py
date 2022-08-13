@@ -14,7 +14,8 @@ _log = logging.getLogger(__name__)
 
 class OculusProfiles:
 
-    def __init__(self, bot: discord.Bot):
+    def __init__(self, bot: discord.Bot, guilds):
+        self.guilds = guilds
         self.__bot = bot
         self.__profiles: scrimbot.Store[dict] = scrimbot.Store[dict]("data/oculus_profiles.json", {})
         self.__session = aiohttp.ClientSession()
@@ -73,8 +74,7 @@ class OculusProfiles:
     def get_profile(self, user: discord.Member) -> dict:
         return self.__profiles.data.get(str(user.id), {})
 
-    async def get_embed(self, user: int, long=True) -> Optional[discord.Embed]:
-
+    async def get_embed(self, user: int, long=True, guild=None) -> Optional[discord.Embed]:
         data: Optional[dict] = self.__profiles.data.get(str(user), None)
 
         if data is None:
@@ -92,6 +92,11 @@ class OculusProfiles:
 
         if long and len(data['previous_names']) > 0:
             embed.add_field(name="Previous names", value="\n".join(data['previous_names']), inline=True)
+
+        if long and guild is not None:
+            guild = self.guilds[guild]
+            scrim_count = guild.log.scrim_count(user)
+            embed.add_field(name="Scrims played", value=scrim_count, inline=True)
 
         embed.set_thumbnail(url=data['avatar'])
 

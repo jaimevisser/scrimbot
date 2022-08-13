@@ -28,7 +28,7 @@ class Oculus(Cog):
                                  user: Option(discord.Member, "User you want to see a the oculus profile for")
                                  ):
         """Get a link to the oculus profile of a discord user."""
-        embed = await self.oculus_profiles.get_embed(user.id, user)
+        embed = await self.oculus_profiles.get_embed(user.id, user, ctx.guild_id)
         if embed is None:
             await ctx.respond(f"No profile found for {user}", ephemeral=True)
             return

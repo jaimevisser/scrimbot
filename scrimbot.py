@@ -21,10 +21,10 @@ intents = discord.Intents.default()
 intents.members = True
 
 bot = discord.Bot(intents=intents)
-oculus_profiles = scrimbot.OculusProfiles(bot)
 
 guilds = {}
 
+oculus_profiles = scrimbot.OculusProfiles(bot, guilds=guilds)
 bot.oculus_profiles = oculus_profiles
 bot.initialised = False
 
