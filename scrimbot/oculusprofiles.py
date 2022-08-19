@@ -20,6 +20,14 @@ class OculusProfiles:
         self.__profiles: scrimbot.Store[dict] = scrimbot.Store[dict]("data/oculus_profiles.json", {})
         self.__session = aiohttp.ClientSession()
 
+    async def refresh_profile(self, user: discord.Member):
+        data: Optional[dict] = self.__profiles.data.get(str(user.id), None)
+
+        if data is None:
+            return "User currently has no profile!"
+
+        return await self.set_profile(user, data['profile_url'])
+
     async def set_profile(self, user: discord.Member, profile_link: str):
 
         profile_link = re.sub(r'^.*?https://', r'https://', profile_link)
@@ -47,13 +55,10 @@ class OculusProfiles:
         oculus_name, oculus_avatar = match.groups()
         oculus_avatar = html.unescape(oculus_avatar)
 
-        async with self.__session.get(f"https://ignitevr.gg/stats/player/{oculus_name}") as resp:
-            content = await resp.text()
+        async with self.__session.get(f"https://api.ignitevr.gg/ignitevr/stats/player/{oculus_name}") as resp:
+            content = await resp.json()
 
-        aka = []
-
-        for match in re.finditer(r'<h3 style="line-height: inherit;margin: 1em;">aka (.*?)</h3>', content):
-            aka.append(match.groups()[0])
+        aka = content.get('player', {}).get('previous_names', [])
 
         self.__profiles.data[str(user.id)] = {
             "name": oculus_name,

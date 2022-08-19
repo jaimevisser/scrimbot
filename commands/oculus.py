@@ -23,12 +23,22 @@ class Oculus(Cog):
         response = await self.oculus_profiles.set_profile(ctx.author, profile)
         await ctx.respond(response, ephemeral=True)
 
+    @slash_command(name="oculus-refresh", guild_ids=config.guilds_with_features({"OCULUS"}))
+    @discord.default_permissions(administrator=True)
+    async def oculus_profile_refresh(self, ctx: discord.ApplicationContext,
+                                     user: Option(discord.Member, "User you want to refresh the oculus profile for")
+                                     ):
+        """Fetch new data for an existing profile"""
+        await ctx.defer(ephemeral=True)
+        response = await self.oculus_profiles.refresh_profile(user)
+        await ctx.respond(response, ephemeral=True)
+
     @slash_command(name="oculus-get", guild_ids=config.guilds_with_features({"OCULUS"}))
     async def oculus_profile_get(self, ctx: discord.ApplicationContext,
                                  user: Option(discord.Member, "User you want to see a the oculus profile for")
                                  ):
         """Get a link to the oculus profile of a discord user."""
-        embed = await self.oculus_profiles.get_embed(user.id, user, ctx.guild_id)
+        embed = await self.oculus_profiles.get_embed(user.id, True, ctx.guild_id)
         if embed is None:
             await ctx.respond(f"No profile found for {user}", ephemeral=True)
             return
