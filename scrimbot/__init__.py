@@ -1,3 +1,4 @@
+from scrimbot.utils import *
 from scrimbot.store import Store
 from scrimbot.log import Log
 from scrimbot.discordProxy import DiscordProxy
