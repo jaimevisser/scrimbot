@@ -3,7 +3,6 @@ from discord import Option, slash_command
 from discord.ext.commands import Cog
 
 import scrimbot
-from scrimbot import config
 
 
 class Moderation(Cog):
@@ -11,7 +10,7 @@ class Moderation(Cog):
     def __init__(self, guilds):
         self.guilds = guilds
 
-    @slash_command(guild_ids=config.guilds_with_features({"LOG", "REPORT"}))
+    @slash_command()
     async def report(self, ctx,
                      name: Option(discord.Member, "User to report"),
                      text: Option(str, "Tell us what you want to report")
@@ -19,7 +18,7 @@ class Moderation(Cog):
         """Send a message to the moderators"""
         guild = self.guilds[ctx.guild_id]
 
-        if guild.log.daily_report_count(ctx.author.id) > guild.config["reports_per_day"]:
+        if guild.log.daily_report_count(ctx.author.id) > guild.settings.server["reports_per_day"]:
             await ctx.respond("You've sent too many reports in the past 24 hours, please wait a bit", ephemeral=True,
                               delete_after=5)
             return
@@ -29,7 +28,7 @@ class Moderation(Cog):
                                                      f"in {ctx.channel.mention} for the following:\n{text}")
         await ctx.respond("Report sent", ephemeral=True)
 
-    @slash_command(guild_ids=config.guilds_with_features({"LOG"}))
+    @slash_command()
     @discord.default_permissions(administrator=True)
     async def note(self, ctx,
                    name: Option(discord.Member, "User to make a note for"),
@@ -43,7 +42,7 @@ class Moderation(Cog):
             .send(f"User {name.mention} has had a note added by {ctx.author.mention}: {text}")
         await ctx.respond("Note added", ephemeral=True)
 
-    @slash_command(guild_ids=config.guilds_with_features({"LOG"}))
+    @slash_command()
     @discord.default_permissions(administrator=True)
     async def warn(self, ctx,
                    name: Option(discord.Member, "User to make a note for"),
@@ -66,7 +65,7 @@ class Moderation(Cog):
             f"Their warning count is now at {warn_count}")
         await ctx.respond(message, ephemeral=True)
 
-    @slash_command(guild_ids=config.guilds_with_features({"LOG"}))
+    @slash_command()
     @discord.default_permissions(administrator=True)
     async def rmlog(self, ctx,
                     id: Option(str, "ID of the entry to remove, it's the gibberish in square brackets [] in the log")
@@ -81,7 +80,7 @@ class Moderation(Cog):
         else:
             await ctx.respond("No matching entries found", ephemeral=True)
 
-    @slash_command(guild_ids=config.guilds_with_features({"LOG"}))
+    @slash_command()
     @discord.default_permissions(administrator=True)
     async def purgelog(self, ctx,
                        name: Option(discord.Member, "User to clear the log for")
@@ -97,7 +96,7 @@ class Moderation(Cog):
         else:
             await ctx.respond("No matching entries found", ephemeral=True)
 
-    @slash_command(guild_ids=config.guilds_with_features({"LOG"}))
+    @slash_command()
     @discord.default_permissions(administrator=True)
     async def log(self, ctx,
                   name: Option(discord.Member, "User to display the log for")
@@ -123,7 +122,7 @@ class Moderation(Cog):
 
         await scrimbot.utils.print(ctx, f"**Log for {name}**", entries)
 
-    @slash_command(guild_ids=config.guilds_with_features({"LOG"}))
+    @slash_command()
     @discord.default_permissions(administrator=True)
     async def warn_list(self, ctx,
                         sorting: Option(str, "Sorting to apply", choices=["recent", "all"])
@@ -134,7 +133,7 @@ class Moderation(Cog):
 
         await scrimbot.utils.print(ctx, f"**Warning top**\n *(all time/recent)*", entries)
 
-    @slash_command(guild_ids=config.guilds_with_features({"LOG"}))
+    @slash_command()
     async def scrim_top(self, ctx):
         """Display the list of all users that played scrims"""
         guild = self.guilds[ctx.guild_id]

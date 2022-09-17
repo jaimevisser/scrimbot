@@ -3,7 +3,6 @@ from discord import Option, slash_command
 from discord.ext.commands import Cog
 
 import scrimbot
-from scrimbot import config
 
 OCU_SET_HELP = "Oculus profile link, get it from the phone app: menu > people > blue \"share\" button"
 
@@ -14,7 +13,7 @@ class Oculus(Cog):
         self.guilds = guilds
         self.oculus_profiles = profiles
 
-    @slash_command(name="oculus-set", guild_ids=config.guilds_with_features({"OCULUS"}))
+    @slash_command(name="oculus-set")
     async def oculus_profile_set(self, ctx: discord.ApplicationContext,
                                  profile: Option(str, OCU_SET_HELP)
                                  ):
@@ -23,7 +22,7 @@ class Oculus(Cog):
         response = await self.oculus_profiles.set_profile(ctx.author, profile)
         await ctx.respond(response, ephemeral=True)
 
-    @slash_command(name="oculus-refresh", guild_ids=config.guilds_with_features({"OCULUS"}))
+    @slash_command(name="oculus-refresh")
     @discord.default_permissions(administrator=True)
     async def oculus_profile_refresh(self, ctx: discord.ApplicationContext,
                                      user: Option(discord.Member, "User you want to refresh the oculus profile for")
@@ -33,7 +32,7 @@ class Oculus(Cog):
         response = await self.oculus_profiles.refresh_profile(user)
         await ctx.respond(response, ephemeral=True)
 
-    @slash_command(name="oculus-get", guild_ids=config.guilds_with_features({"OCULUS"}))
+    @slash_command(name="oculus-get")
     async def oculus_profile_get(self, ctx: discord.ApplicationContext,
                                  user: Option(discord.Member, "User you want to see a the oculus profile for")
                                  ):

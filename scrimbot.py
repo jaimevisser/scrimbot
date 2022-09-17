@@ -7,7 +7,7 @@ import discord
 
 import commands
 import scrimbot
-from scrimbot import tag, config
+from scrimbot import tag, config, Config
 
 os.makedirs("data/logs", exist_ok=True)
 filehandler = RotatingFileHandler(filename="data/logs/scrimbot.log", mode="w", maxBytes=1024 * 50, backupCount=4)
@@ -19,6 +19,7 @@ logging.basicConfig(level=logging.INFO,
 # members intent needed for on_member_update() event
 intents = discord.Intents.default()
 intents.members = True
+intents.message_content = True
 
 bot = discord.Bot(intents=intents)
 
@@ -52,7 +53,7 @@ async def on_ready():
         _log.info("Bot initialised")
 
 
-@bot.slash_command(guild_ids=config.guilds_with_features({"TIME"}))
+@bot.slash_command()
 async def time(ctx):
     """Show server time"""
     guild = guilds[ctx.guild_id]
@@ -78,5 +79,6 @@ bot.add_cog(commands.Moderation(guilds))
 bot.add_cog(commands.Scrim(guilds))
 bot.add_cog(commands.Oculus(guilds, oculus_profiles))
 bot.add_cog(commands.TimeoutList(guilds))
+bot.add_cog(commands.Settings(guilds))
 
-bot.run(config.token)
+bot.run(Config().token)

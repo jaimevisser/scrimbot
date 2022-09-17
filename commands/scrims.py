@@ -8,7 +8,7 @@ from discord import Option, slash_command
 from discord.ext.commands import Cog
 
 import scrimbot
-from scrimbot import config, tag
+from scrimbot import tag
 
 _log = logging.getLogger(__name__)
 
@@ -18,7 +18,7 @@ class Scrim(Cog):
     def __init__(self, guilds):
         self.guilds = guilds
 
-    @slash_command(guild_ids=config.guilds_with_features({"SCRIMS"}))
+    @slash_command()
     async def scrim(self, ctx,
                     time: Option(str, "Time when the scrim will start, format must be 14:00, 14.00 or 1400"),
                     name: Option(str, "Give this scrim a name", required=False),
@@ -45,7 +45,7 @@ class Scrim(Cog):
             await ctx.respond("Invalid time, format must be 14:00, 14.00 or 1400!", ephemeral=True)
             return
 
-        if str(ctx.channel.id) not in guild.scrim_channels.keys():
+        if str(ctx.channel.id) not in guild.settings.channels.keys():
             await ctx.respond("This is not a channel for organising scrims!", ephemeral=True)
             return
 
@@ -107,7 +107,7 @@ class Scrim(Cog):
 
         await respond(f"Scrim created for {tag.time(scrim_time)} (your local time)")
 
-    @slash_command(name="active-scrims", guild_ids=config.guilds_with_features({"SCRIMS"}))
+    @slash_command(name="active-scrims")
     async def active_scrims(self, ctx):
         """Get a list of active scrims that haven't started yet (10 max)"""
         guild = self.guilds[ctx.guild_id]
@@ -126,7 +126,7 @@ class Scrim(Cog):
 
         await ctx.respond(embeds=embeds, ephemeral=True)
 
-    @slash_command(name="ping-scrim", guild_ids=config.guilds_with_features({"SCRIMS", "SCRIM_PING"}))
+    @slash_command(name="ping-scrim")
     async def scrim_ping(self, ctx,
                          text: Option(str, "Text to ping the scrim with")
                          ):
@@ -142,7 +142,7 @@ class Scrim(Cog):
 
         await ctx.respond(response, ephemeral=ephemeral)
 
-    @slash_command(guild_ids=config.guilds_with_features({"SCRIMS"}))
+    @slash_command()
     @discord.default_permissions(administrator=True)
     async def kick(self, ctx,
                    player: Option(discord.Member, "User you want to kick from this scrim."),
@@ -173,7 +173,7 @@ class Scrim(Cog):
         s += f" Reason: {reason}." if reason else ""
         _log.info(s)
 
-    @slash_command(name="archive-scrim", guild_ids=config.guilds_with_features({"SCRIMS"}))
+    @slash_command(name="archive-scrim")
     @discord.default_permissions(administrator=True)
     async def archive_scrim(self, ctx):
         """Archive an open scrim thread"""
@@ -183,7 +183,7 @@ class Scrim(Cog):
             await ctx.respond("This isn't a thread", ephemeral=True)
             return
 
-        if str(ctx.channel.parent_id) not in guild.scrim_channels.keys():
+        if str(ctx.channel.parent_id) not in guild.settings.channels.keys():
             await ctx.respond("This isn't a thread in a scrim channel", ephemeral=True)
             return
 

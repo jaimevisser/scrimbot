@@ -1,6 +1,7 @@
 from scrimbot.utils import *
 from scrimbot.store import Store
 from scrimbot.log import Log
+from scrimbot.settings import Settings
 from scrimbot.discordProxy import DiscordProxy
 from scrimbot.scrim import Scrim
 from scrimbot.scrimmanager import ScrimManager

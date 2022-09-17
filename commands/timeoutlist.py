@@ -7,7 +7,6 @@ from discord import Option, Permissions
 from discord.ext.commands import Cog
 
 import scrimbot
-from scrimbot import config
 
 _log = logging.getLogger(__name__)
 
@@ -20,7 +19,6 @@ class TimeoutList(Cog):
     scrim_timeout = discord.SlashCommandGroup(
         name="scrim-timeout",
         description="Timeout commands",
-        guild_ids=config.guilds_with_features({"SCRIMS"}),
         default_member_permissions=Permissions(administrator=True))
 
     @scrim_timeout.command(name="list")
