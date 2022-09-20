@@ -6,6 +6,7 @@ from discord import Permissions, ApplicationContext
 from discord.ext.commands import Cog
 
 import scrimbot
+from scrimbot import Guilds
 from scrimbot.settings import ParseException
 
 _log = logging.getLogger(__name__)
@@ -13,7 +14,7 @@ _log = logging.getLogger(__name__)
 
 class Settings(Cog):
 
-    def __init__(self, guilds: dict[int, scrimbot.Guild]):
+    def __init__(self, guilds: Guilds):
         self.guilds = guilds
 
     settings = discord.SlashCommandGroup(
@@ -23,7 +24,8 @@ class Settings(Cog):
 
     @settings.command(name="upload")
     async def upload(self, ctx: ApplicationContext):
-        guild = self.guilds[ctx.guild_id]
+        """Upload a new settings file for your discord guild."""
+        guild = await self.guilds.get(ctx.guild_id)
 
         await ctx.respond("Send a message with the settings file attached in this channel in the next minute")
 
@@ -48,7 +50,8 @@ class Settings(Cog):
 
     @settings.command(name="download")
     async def download(self, ctx: ApplicationContext):
-        guild = self.guilds[ctx.guild_id]
+        """Download the settings file for your discord guild."""
+        guild = await self.guilds.get(ctx.guild_id)
 
         settings = guild.settings.get_filename()
 

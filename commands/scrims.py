@@ -8,14 +8,14 @@ from discord import Option, slash_command
 from discord.ext.commands import Cog
 
 import scrimbot
-from scrimbot import tag
+from scrimbot import tag, Guilds
 
 _log = logging.getLogger(__name__)
 
 
 class Scrim(Cog):
 
-    def __init__(self, guilds):
+    def __init__(self, guilds: Guilds):
         self.guilds = guilds
 
     @slash_command()
@@ -25,7 +25,7 @@ class Scrim(Cog):
                     size: Option(int, "Number of players for this scrim, the default is 8", required=False)
                     ):
         """Start a scrim in this channel."""
-        guild = self.guilds[ctx.guild_id]
+        guild = await self.guilds.get(ctx.guild_id)
 
         await ctx.defer(ephemeral=True)
 
@@ -110,7 +110,7 @@ class Scrim(Cog):
     @slash_command(name="active-scrims")
     async def active_scrims(self, ctx):
         """Get a list of active scrims that haven't started yet (10 max)"""
-        guild = self.guilds[ctx.guild_id]
+        guild = await self.guilds.get(ctx.guild_id)
 
         scrims: list[scrimbot.ScrimManager] = guild.scrim_managers
         relevant_scrims: list[scrimbot.ScrimManager] = \
@@ -131,7 +131,7 @@ class Scrim(Cog):
                          text: Option(str, "Text to ping the scrim with")
                          ):
         """Ping all players in the scrim"""
-        guild: scrimbot.Guild = self.guilds[ctx.guild_id]
+        guild = await self.guilds.get(ctx.guild_id)
         scrim_manager = guild.get_scrim_manager(ctx.channel.id)
 
         if scrim_manager is None:
@@ -149,7 +149,7 @@ class Scrim(Cog):
                    reason: Option(str, "Specify the reason for kicking the user from the scrim.", required=False)
                    ):
         """Kick a player out of a scrim"""
-        guild: scrimbot.Guild = self.guilds[ctx.guild_id]
+        guild = await self.guilds.get(ctx.guild_id)
         scrim_manager = guild.get_scrim_manager(ctx.channel.id)
 
         if scrim_manager is None:
@@ -177,7 +177,7 @@ class Scrim(Cog):
     @discord.default_permissions(administrator=True)
     async def archive_scrim(self, ctx):
         """Archive an open scrim thread"""
-        guild = self.guilds[ctx.guild_id]
+        guild = await self.guilds.get(ctx.guild_id)
 
         if not isinstance(ctx.channel, discord.Thread):
             await ctx.respond("This isn't a thread", ephemeral=True)

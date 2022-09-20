@@ -7,13 +7,14 @@ from discord import Option, Permissions
 from discord.ext.commands import Cog
 
 import scrimbot
+from scrimbot import Guilds
 
 _log = logging.getLogger(__name__)
 
 
 class TimeoutList(Cog):
 
-    def __init__(self, guilds: dict[int, scrimbot.Guild]):
+    def __init__(self, guilds: Guilds):
         self.guilds = guilds
 
     scrim_timeout = discord.SlashCommandGroup(
@@ -25,7 +26,7 @@ class TimeoutList(Cog):
     async def timeout_list(self, ctx,
                            user: Option(discord.Member, "Filter the list for a user", required=False)):
         """Get a list of users on scrim-timeout"""
-        guild: scrimbot.Guild = self.guilds[ctx.guild_id]
+        guild = await self.guilds.get(ctx.guild_id)
 
         users = []
         if user is None:
@@ -58,7 +59,7 @@ class TimeoutList(Cog):
                              user: Option(discord.Member, "User to reset the timeout for."),
                              reason: Option(str, "Specify a reason.", required=False)):
         """Remove a user's scrim-timeout."""
-        guild = self.guilds[ctx.guild_id]
+        guild = await self.guilds.get(ctx.guild_id)
         if not guild.is_on_timeout(user):
             await ctx.respond(f"{user} is not on timeout.", ephemeral=True)
             return
@@ -90,7 +91,7 @@ class TimeoutList(Cog):
                                            "Format: '1d 5h 30m' for 1 day, 5 hours and 30 mins. 'd', 'h', 'm' may be combined freely."),
                           reason: Option(str, "Reason for the timeout.", required=False)):
         """Send user into scrim-timeout for a specified duration."""
-        guild: scrimbot.Guild = self.guilds[ctx.guild_id]
+        guild = await self.guilds.get(ctx.guild_id)
 
         if guild.is_on_timeout(user):
             delta = guild.get_user_timeout(user.id)

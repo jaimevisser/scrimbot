@@ -3,11 +3,12 @@ from discord import Option, slash_command
 from discord.ext.commands import Cog
 
 import scrimbot
+from scrimbot import Guilds
 
 
 class Moderation(Cog):
 
-    def __init__(self, guilds):
+    def __init__(self, guilds: Guilds):
         self.guilds = guilds
 
     @slash_command()
@@ -16,7 +17,7 @@ class Moderation(Cog):
                      text: Option(str, "Tell us what you want to report")
                      ):
         """Send a message to the moderators"""
-        guild = self.guilds[ctx.guild_id]
+        guild = await self.guilds.get(ctx.guild_id)
 
         if guild.log.daily_report_count(ctx.author.id) > guild.settings.server["reports_per_day"]:
             await ctx.respond("You've sent too many reports in the past 24 hours, please wait a bit", ephemeral=True,
@@ -35,7 +36,7 @@ class Moderation(Cog):
                    text: Option(str, "Note")
                    ):
         """Make a note in a users' log."""
-        guild = self.guilds[ctx.guild_id]
+        guild = await self.guilds.get(ctx.guild_id)
 
         guild.log.add_note(name.id, ctx.author.id, text)
         await (await guild.fetch_mod_channel()) \
@@ -49,7 +50,7 @@ class Moderation(Cog):
                    text: Option(str, "Warning")
                    ):
         """Warn a user. A DM will be sent to the user as well."""
-        guild = self.guilds[ctx.guild_id]
+        guild = await self.guilds.get(ctx.guild_id)
 
         guild.log.add_warning(name.id, ctx.author.id, text)
         warn_count = guild.log.warning_count(name.id)
@@ -71,7 +72,7 @@ class Moderation(Cog):
                     id: Option(str, "ID of the entry to remove, it's the gibberish in square brackets [] in the log")
                     ):
         """Remove a single log entry from a user"""
-        guild = self.guilds[ctx.guild_id]
+        guild = await self.guilds.get(ctx.guild_id)
 
         num_removed = guild.log.remove(predicate=lambda entry: entry["id"] == id)
 
@@ -86,7 +87,7 @@ class Moderation(Cog):
                        name: Option(discord.Member, "User to clear the log for")
                        ):
         """Remove everything in the log for a user"""
-        guild = self.guilds[ctx.guild_id]
+        guild = await self.guilds.get(ctx.guild_id)
 
         num_removed = guild.log.remove(predicate=lambda entry: entry["user"] == name.id)
 
@@ -102,7 +103,7 @@ class Moderation(Cog):
                   name: Option(discord.Member, "User to display the log for")
                   ):
         """Display the log of a user, will print the log in the current channel."""
-        guild = self.guilds[ctx.guild_id]
+        guild = await self.guilds.get(ctx.guild_id)
         types = None
         authors = False
 
@@ -128,7 +129,7 @@ class Moderation(Cog):
                         sorting: Option(str, "Sorting to apply", choices=["recent", "all"])
                         ):
         """Display the list of all users that have warnings."""
-        guild = self.guilds[ctx.guild_id]
+        guild = await self.guilds.get(ctx.guild_id)
         entries = guild.log.print_warning_top(recent=(sorting == "recent"))
 
         await scrimbot.utils.print(ctx, f"**Warning top**\n *(all time/recent)*", entries)
@@ -136,7 +137,7 @@ class Moderation(Cog):
     @slash_command()
     async def scrim_top(self, ctx):
         """Display the list of all users that played scrims"""
-        guild = self.guilds[ctx.guild_id]
+        guild = await self.guilds.get(ctx.guild_id)
         entries = guild.log.print_scrim_top()
 
         await scrimbot.utils.print(ctx, "**Scrim top**", entries)

@@ -16,7 +16,6 @@ class Guild:
     def __init__(self, id: str, bot: discord.Bot):
         self.id = str(id)
         self.name = str(id)
-        self.config = None
         self.bot: discord.Bot = bot
         self.settings = scrimbot.Settings(scrimbot.Store[dict](f"data/{self.id}-settings.json", {}),
                                           lambda: set([x.id for x in self.discord_guild.channels]),
@@ -44,9 +43,6 @@ class Guild:
         self.mod_channel = await self.fetch_mod_channel()
 
         await self._timeouts.init()
-
-        if "name" not in self.config:
-            self.name += " - " + self.discord_guild.name
 
         scrims = self.scrim_managers.copy()
         for scrim in scrims:

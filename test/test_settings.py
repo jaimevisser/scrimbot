@@ -1,11 +1,12 @@
 import unittest
+from unittest import TestCase
 from unittest.mock import MagicMock
 
 from scrimbot import Settings
 from scrimbot.settings import ParseException
 
 
-class SettingsTests(unittest.TestCase):
+class SettingsTests(TestCase):
 
     @staticmethod
     def create_settings(store=MagicMock()):

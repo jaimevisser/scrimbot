@@ -3,13 +3,14 @@ from discord import Option, slash_command
 from discord.ext.commands import Cog
 
 import scrimbot
+from scrimbot import Guilds
 
 OCU_SET_HELP = "Oculus profile link, get it from the phone app: menu > people > blue \"share\" button"
 
 
 class Oculus(Cog):
 
-    def __init__(self, guilds: dict[int, scrimbot.Guild], profiles: scrimbot.OculusProfiles):
+    def __init__(self, guilds: Guilds, profiles: scrimbot.OculusProfiles):
         self.guilds = guilds
         self.oculus_profiles = profiles
 
