@@ -1,0 +1,23 @@
+{
+  "server": {
+    "mod_channel": <Channel_ID>,
+    "timezone": "UTC",
+    "reports_per_day": 2,
+    "timeout_role": <Role_ID>,
+    "invite_channel": <Channel_ID>
+  },
+  "channel_defaults": {
+    "broadcast_channel": <Channel_ID>,
+    "ping_cooldown": 5,
+    "scrimmer_role": <Role_ID>,
+    "prefix": "Mixed Scrim"
+  },
+  "channel": {
+    "<Channel_ID>": {
+      "broadcast_channel": <Channel_ID>,
+      "ping_cooldown": 5,
+      "scrimmer_role": <Role_ID>,
+      "prefix": "Team Scrim"
+    }
+  }
+}

@@ -1,3 +1,4 @@
+import json
 from typing import Type, Callable
 
 import pytz
@@ -66,6 +67,12 @@ class ParseException(Exception):
 
 
 class Settings:
+
+    DEFAULT = {
+        "server":{
+            "timezone": "UTC"
+        }
+    }
 
     def __init__(self, settings_store: scrimbot.Store[dict], channels: Callable[[], set[int]],
                  roles: Callable[[], set[int]]):
@@ -193,3 +200,9 @@ class Settings:
         data = self.combined(self.__settings.data)
         self.__flatten(data, use_defaults=True)
         return data.get('channel', {})
+
+    @property
+    def channel_defaults(self) -> dict:
+        data = self.combined(self.__settings.data)
+        self.__flatten(data, use_defaults=True)
+        return data["channel_defaults"]

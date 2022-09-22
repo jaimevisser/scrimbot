@@ -38,9 +38,6 @@ class ScrimManager:
 
         self.ping_cooldown = timedelta(minutes=scrim.settings.get("ping_cooldown", 5))
         self.broadcast = scrim.settings.get("broadcast_channel", 0)
-        self.call_reserve_roles = scrim.settings.get("call_reserve_roles", None)
-        if self.call_reserve_roles is not None:
-            self.call_reserve_roles = set(self.call_reserve_roles)
 
         self.__thread: DiscordProxy[discord.Thread] = DiscordProxy(fetcher=fetch_thread,
                                                                    on_fetch=self.__on_thread_fetched,
@@ -212,11 +209,7 @@ class ScrimManager:
         return self.scrim.contains_user(user)
 
     def can_call_reserve(self, user: discord.Member):
-        if self.call_reserve_roles is not None:
-            roles = set(r.id for r in user.roles)
-            return roles.intersection(self.call_reserve_roles)
-        else:
-            return self.scrim.contains_user(user.id)
+        return self.scrim.contains_user(user.id)
 
     async def __start_scrim(self):
         now = datetime.now(self.scrim.timezone)

@@ -13,25 +13,33 @@ The bot needs two files in ./data
 
 This should be a plain text file containing the bot token.
 
-### config.yaml/config.json
+## Discord guild/server setup
 
-This should be a yaml or json file containing the settings for the bot. Settings are on a per-server basis. If you plan
-to support multiple servers you can add multiple of these blocks. A [config file example](examples/config.yaml) can be
-found in the examples.
-
-### Discord guild/server setup
+### Command setup
 
 Go to `Server Settings > Integrations > Bots and Apps > scrimbot > Manage` and set up the slash commands. The following
 are some sane suggestions.
 
 #### Everyone/all channels
+
 `/active-scrims`, `/report`, `/oculus-set`, `/oculus-get`, `/time`
 
 #### Everyone/scrim channel(s)
+
 `/ping-scrim`, `/scrim`
 
 #### Moderator role/scrim channel(s)
+
 `/archive-scrim`, `/kick`
 
 #### Moderator role/all channels
+
 `/log`, `/note`, `/warn`, `/purgelog`, `/rmlog`, `/scrim-timeout`
+
+### Server settings
+
+You can use `/settings download` and `/settings upload` to modify the settings for your server. You can find an example
+here: [settings file example](examples/settings.json).
+
+The `server` section contains server wide settings, `channel_defaults` are the default settings for each channel.
+Under `channel` you can add settings for each specific channel.

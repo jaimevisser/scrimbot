@@ -17,19 +17,18 @@ class Guild:
         self.id = str(id)
         self.name = str(id)
         self.bot: discord.Bot = bot
-        self.settings = scrimbot.Settings(scrimbot.Store[dict](f"data/{self.id}-settings.json", {}),
-                                          lambda: set([x.id for x in self.discord_guild.channels]),
-                                          lambda: set([x.id for x in self.discord_guild.roles]))
+        self.settings = scrimbot.Settings(
+            scrimbot.Store[dict](f"data/{self.id}-settings.json", scrimbot.Settings.DEFAULT),
+            lambda: set([x.id for x in self.discord_guild.channels]),
+            lambda: set([x.id for x in self.discord_guild.roles]))
         __log_store = scrimbot.Store[list](f"data/{self.id}-log.json", [])
         self.__scrims = scrimbot.Store[list](f"data/{self.id}-scrims.json", [])
         _timeouts_store = scrimbot.Store[list](f"data/{self.id}-timeouts.json", [])
         self.log = scrimbot.Log(__log_store.data, self.queue_callable(__log_store.sync))
         self._timeouts = scrimbot.TimeoutList(self, _timeouts_store)
         self.mod_channel: Optional[discord.TextChannel] = None
-        self.timezone = pytz.timezone(self.settings["timezone"])
         self.scrim_managers: list[scrimbot.ScrimManager] = []
         self.broadcasts: list[scrimbot.Broadcaster] = []
-        self.organiser_roles = None
         self.invite: Optional[discord.Invite] = None
         self.__invite_channel: Optional[discord.TextChannel] = None
         self.discord_guild: Optional[discord.Guild] = None
@@ -37,6 +36,10 @@ class Guild:
 
         for scrim in self.__scrims.data:
             self.__create_scrim(scrim)
+
+    @property
+    def timezone(self):
+        return pytz.timezone(self.settings.server["timezone"])
 
     async def init(self):
         self.discord_guild = await self.bot.fetch_guild(int(self.id))
@@ -54,6 +57,8 @@ class Guild:
 
         broadcast_channels = \
             set(s["broadcast_channel"] for s in self.settings.channels.values() if "broadcast_channel" in s)
+        if "broadcast_channel" in self.settings.channel_defaults:
+            broadcast_channels = broadcast_channels.union({self.settings.channel_defaults["broadcast_channel"]})
 
         for b in broadcast_channels:
             self.broadcasts.append(scrimbot.Broadcaster(b, self))

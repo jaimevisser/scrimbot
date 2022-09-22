@@ -33,20 +33,10 @@ class Scrim(Cog):
             await ctx.respond("Sorry buddy, you are on a timeout!", ephemeral=True)
             return
 
-        if guild.organiser_roles is not None:
-            roles = set(r.id for r in ctx.author.roles)
-            if roles.isdisjoint(guild.organiser_roles):
-                await ctx.respond("You are not an organiser.", ephemeral=True)
-                return
-
         match = re.match(r"([0-9]{1,2})[:.]?([0-9]{2})", str(time))
 
         if not match:
             await ctx.respond("Invalid time, format must be 14:00, 14.00 or 1400!", ephemeral=True)
-            return
-
-        if str(ctx.channel.id) not in guild.settings.channels.keys():
-            await ctx.respond("This is not a channel for organising scrims!", ephemeral=True)
             return
 
         scrim_hour, scrim_minute = match.groups()
@@ -181,10 +171,6 @@ class Scrim(Cog):
 
         if not isinstance(ctx.channel, discord.Thread):
             await ctx.respond("This isn't a thread", ephemeral=True)
-            return
-
-        if str(ctx.channel.parent_id) not in guild.settings.channels.keys():
-            await ctx.respond("This isn't a thread in a scrim channel", ephemeral=True)
             return
 
         guild.queue_task(ctx.channel.archive())
