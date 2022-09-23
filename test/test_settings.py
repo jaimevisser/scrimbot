@@ -97,6 +97,15 @@ class SettingsTests(TestCase):
         self.assertDictEqual(channels, {'20': {'broadcast_channel': 45, 'ping_cooldown': 5, 'prefix': 'Mixed Scrim'},
                                         '25': {'broadcast_channel': 42, 'ping_cooldown': 5, 'prefix': 'Mixed Scrim'}})
 
+    def test_get_channel_defaults(self):
+        store = MagicMock()
+        store.data = {"server": {"timezone": "Atlantic/Madeira"}, 'channel_defaults': {'broadcast_channel': 40},
+                      'channel': {'20': {'broadcast_channel': 45}}}
+
+        channel = self.create_settings(store).channel_defaults
+
+        self.assertDictEqual(channel, {'broadcast_channel': 40, 'ping_cooldown': 5, 'prefix': 'Mixed Scrim'})
+
 
 if __name__ == '__main__':
     unittest.main()

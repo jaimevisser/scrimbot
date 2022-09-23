@@ -43,7 +43,7 @@ class Guild:
 
     async def init(self):
         self.discord_guild = await self.bot.fetch_guild(int(self.id))
-        self.mod_channel = await self.fetch_mod_channel()
+        await self.reload()
 
         await self._timeouts.init()
 
@@ -55,6 +55,11 @@ class Guild:
                 _log.error(f"Unable to properly initialise scrim {scrim.id} due to {error}")
                 _log.exception(error)
 
+    async def reload(self):
+        self.mod_channel = None
+        self.mod_channel = await self.fetch_mod_channel()
+
+        self.broadcasts: list[scrimbot.Broadcaster] = []
         broadcast_channels = \
             set(s["broadcast_channel"] for s in self.settings.channels.values() if "broadcast_channel" in s)
         if "broadcast_channel" in self.settings.channel_defaults:
@@ -63,8 +68,12 @@ class Guild:
         for b in broadcast_channels:
             self.broadcasts.append(scrimbot.Broadcaster(b, self))
 
-        for b in self.broadcasts:
-            await b.update()
+        await self.update_broadcasts()
+
+        self.settings = scrimbot.Settings(
+            scrimbot.Store[dict](f"data/{self.id}-settings.json", scrimbot.Settings.DEFAULT),
+            lambda: set([x.id for x in self.discord_guild.channels]),
+            lambda: set([x.id for x in self.discord_guild.roles]))
 
     async def fetch_mod_channel(self):
         server_settings = self.settings.server
