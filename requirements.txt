@@ -1,6 +1,7 @@
 py-cord @ git+https://github.com/Pycord-Development/pycord@47095071be8109ed4199e80089d628264b7e1e5e
-pytz~=2022.1
-DateTime~=4.4
+pytz==2022.2.1
+DateTime==4.7
 pyyaml~=6.0
-requests~=2.27.1
+requests==2.28.1
 aiohttp==3.8.1
+asynctest~=0.13.0

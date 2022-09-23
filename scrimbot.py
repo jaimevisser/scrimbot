@@ -7,7 +7,7 @@ import discord
 
 import commands
 import scrimbot
-from scrimbot import tag, config
+from scrimbot import tag, Config
 
 os.makedirs("data/logs", exist_ok=True)
 filehandler = RotatingFileHandler(filename="data/logs/scrimbot.log", mode="w", maxBytes=1024 * 50, backupCount=4)
@@ -19,19 +19,17 @@ logging.basicConfig(level=logging.INFO,
 # members intent needed for on_member_update() event
 intents = discord.Intents.default()
 intents.members = True
+intents.message_content = True
 
 bot = discord.Bot(intents=intents)
 
-guilds = {}
+guilds = scrimbot.Guilds(bot)
 
 oculus_profiles = scrimbot.OculusProfiles(bot, guilds=guilds)
 bot.oculus_profiles = oculus_profiles
 bot.initialised = False
 
 _log = logging.getLogger("scrimbot")
-
-for g in config.guilds:
-    guilds[g] = scrimbot.Guild(str(g), config.config[str(g)], bot)
 
 
 async def init():
@@ -47,15 +45,13 @@ async def init():
 async def on_ready():
     if not bot.initialised:
         bot.initialised = True
-        await init()
-
         _log.info("Bot initialised")
 
 
-@bot.slash_command(guild_ids=config.guilds_with_features({"TIME"}))
+@bot.slash_command()
 async def time(ctx):
     """Show server time"""
-    guild = guilds[ctx.guild_id]
+    guild = await guilds.get(ctx.guild_id)
 
     server_time = datetime.now(guild.timezone)
 
@@ -69,14 +65,14 @@ async def time(ctx):
 
 @bot.event
 async def on_member_update(before, after):
-    guild = guilds.get(after.guild.id, None)
-    if guild is not None:
-        guild.on_member_update(before, after)
+    guild = await guilds.get(after.guild.id)
+    guild.on_member_update(before, after)
 
 
 bot.add_cog(commands.Moderation(guilds))
 bot.add_cog(commands.Scrim(guilds))
 bot.add_cog(commands.Oculus(guilds, oculus_profiles))
 bot.add_cog(commands.TimeoutList(guilds))
+bot.add_cog(commands.Settings(guilds))
 
-bot.run(config.token)
+bot.run(Config().token)

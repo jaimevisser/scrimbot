@@ -12,6 +12,10 @@ class Store(Generic[T]):
         self.__empty = empty
         self.data: T = self.__load()
 
+    @property
+    def file(self):
+        return self.__file
+
     def __load(self) -> T:
         try:
             with open(self.__file, 'r') as file:
