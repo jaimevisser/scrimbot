@@ -63,7 +63,8 @@ class Scrim:
 
     @property
     def __role(self):
-        return None if self.settings is None or "role" not in self.settings else tag.role(self.settings["role"])
+        return None if self.settings is None or "scrimmer_role" not in self.settings else \
+            tag.role(self.settings["scrimmer_role"])
 
     @property
     def players(self):
