@@ -29,7 +29,6 @@ class Guild:
         self.mod_channel: Optional[discord.TextChannel] = None
         self.scrim_managers: list[scrimbot.ScrimManager] = []
         self.broadcasts: list[scrimbot.Broadcaster] = []
-        self.invite: Optional[discord.Invite] = None
         self.__invite_channel: Optional[discord.TextChannel] = None
         self.discord_guild: Optional[discord.Guild] = None
         self.__timeout_role = self.settings.server.get("timeout_role", None)
@@ -56,6 +55,8 @@ class Guild:
                 _log.exception(error)
 
     async def reload(self):
+        self.__timeout_role = self.settings.server.get("timeout_role", None)
+        self.__invite_channel: Optional[discord.TextChannel] = None
         self.mod_channel = None
         self.mod_channel = await self.fetch_mod_channel()
 
@@ -96,8 +97,7 @@ class Guild:
             await self.__fetch_invite_channel()
         if self.__invite_channel is not None:
             try:
-                self.invite = await self.__invite_channel.create_invite(max_uses=0, max_age=0, unique=False)
-                return self.invite
+                return await self.__invite_channel.create_invite(max_uses=0, max_age=0, unique=False)
             except discord.DiscordException as error:
                 _log.error(
                     f"{self.name}: Unable create an invite for channel {self.__invite_channel.id} due to {error}")
