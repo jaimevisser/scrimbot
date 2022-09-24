@@ -29,4 +29,4 @@ class Store(Generic[T]):
 
     def sync(self):
         with open(self.__file, 'w') as jsonfile:
-            json.dump(self.data, jsonfile)
+            json.dump(self.data, jsonfile, indent=4)
