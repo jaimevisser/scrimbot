@@ -14,7 +14,7 @@ _log = logging.getLogger(__name__)
 
 class OculusProfiles:
 
-    def __init__(self, bot: discord.Bot, guilds):
+    def __init__(self, bot: discord.Bot, guilds: scrimbot.Guilds):
         self.guilds = guilds
         self.__bot = bot
         self.__profiles: scrimbot.Store[dict] = scrimbot.Store[dict]("data/oculus_profiles.json", {})
@@ -99,7 +99,7 @@ class OculusProfiles:
             embed.add_field(name="Previous names", value="\n".join(data['previous_names']), inline=True)
 
         if long and guild is not None:
-            guild = self.guilds[guild]
+            guild = await self.guilds.get(guild)
             scrim_count = guild.log.scrim_count(user)
             embed.add_field(name="Scrims played", value=scrim_count, inline=True)
 
