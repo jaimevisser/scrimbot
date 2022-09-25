@@ -121,7 +121,7 @@ class Moderation(Cog):
             f"**Warnings / last 7 days:** {guild.log.warning_count(name.id)}/{guild.log.weekly_warning_count(name.id)}")
         entries.append(f"**Number of played scrims:** {guild.log.scrim_count(name.id)}")
 
-        await scrimbot.utils.print(ctx, f"**Log for {name}**", entries)
+        await scrimbot.utils.print(ctx, "", entries, f"**Log for {name}**")
 
     @slash_command()
     @discord.default_permissions(administrator=True)
@@ -132,7 +132,7 @@ class Moderation(Cog):
         guild = await self.guilds.get(ctx.guild_id)
         entries = guild.log.print_warning_top(recent=(sorting == "recent"))
 
-        await scrimbot.utils.print(ctx, f"**Warning top**\n *(all time/recent)*", entries)
+        await scrimbot.utils.print(ctx, "", entries, f"**Warning top**\n *(all time/recent)*")
 
     @slash_command()
     async def scrim_top(self, ctx):
@@ -140,4 +140,4 @@ class Moderation(Cog):
         guild = await self.guilds.get(ctx.guild_id)
         entries = guild.log.print_scrim_top()
 
-        await scrimbot.utils.print(ctx, "**Scrim top**", entries)
+        await scrimbot.utils.print(ctx, "", entries, "**Scrim top**")
