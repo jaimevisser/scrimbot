@@ -79,6 +79,9 @@ class OculusProfiles:
     def get_profile(self, user: discord.Member) -> dict:
         return self.__profiles.data.get(str(user.id), {})
 
+    def get_profile_by_id(self, identifier) -> dict:
+        return self.__profiles.data.get(str(identifier), {})
+
     async def get_embed(self, user: int, long=True, guild=None) -> Optional[discord.Embed]:
         data: Optional[dict] = self.__profiles.data.get(str(user), None)
 

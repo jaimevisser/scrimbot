@@ -6,7 +6,8 @@ from typing import Callable
 
 class Log:
 
-    def __init__(self, data: list, sync: Callable):
+    def __init__(self, data: list, sync: Callable, get_user: Callable[[int], dict]):
+        self.__get_user = get_user
         self.__log = data
         self.__sync = sync
 
@@ -119,9 +120,10 @@ class Log:
 
     def print_scrim_top(self) -> list:
         users = set([x["user"] for x in self.__log if x["type"] == "scrim"])
-        warning_list = [{
+        top_list = [{
             "user": x,
-            "scrims": self.scrim_count(x)
+            "scrims": self.scrim_count(x),
+            "oculus": self.__get_user(x).get("name", "")
         } for x in users]
-        warning_list.sort(key=lambda x: x["scrims"], reverse=True)
-        return [f"<@{x['user']}> {x['scrims']}" for x in warning_list]
+        top_list.sort(key=lambda x: x["scrims"], reverse=True)
+        return [f"<@{x['user']}> {x['oculus']} {x['scrims']}" for x in top_list]

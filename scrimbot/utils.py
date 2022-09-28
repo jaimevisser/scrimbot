@@ -18,7 +18,7 @@ async def output(ctx, lists: list[str], title: str, ephemeral):
 async def print(ctx, content: str, entries: list, title: str = None, ephemeral=True):
     data = []
     for entry in entries:
-        if len(content + entry) > 1024:
+        if len(content + entry) > 1000:
             data.append(content)
             content = entry
             if len(data) == 4:
