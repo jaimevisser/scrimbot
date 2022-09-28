@@ -126,18 +126,28 @@ class Moderation(Cog):
     @slash_command()
     @discord.default_permissions(administrator=True)
     async def warn_list(self, ctx,
-                        sorting: Option(str, "Sorting to apply", choices=["recent", "all"])
+                        sorting: Option(str, "Sorting to apply", choices=["recent", "all"], default="all"),
+                        limit: Option(int, "How long should the list be?", default=20)
                         ):
         """Display the list of all users that have warnings."""
         guild = await self.guilds.get(ctx.guild_id)
         entries = guild.log.print_warning_top(recent=(sorting == "recent"))
 
+        if limit > 0:
+            entries = entries[0:limit]
+
         await scrimbot.utils.print(ctx, "", entries, f"**Warning top**\n *(all time/recent)*")
 
     @slash_command()
-    async def scrim_top(self, ctx):
+    async def scrim_top(self, ctx,
+                        limit: Option(int, "How long should the top be?", default=20),
+                        ephemeral: Option(str, "Show it just for you?", choices=["Yes", "No"], default="Yes")
+                        ):
         """Display the list of all users that played scrims"""
         guild = await self.guilds.get(ctx.guild_id)
         entries = guild.log.print_scrim_top()
 
-        await scrimbot.utils.print(ctx, "", entries, "**Scrim top**")
+        if limit > 0:
+            entries = entries[0:limit]
+
+        await scrimbot.utils.print(ctx, "", entries, "**Scrim top**", ephemeral=(ephemeral == "Yes"))
