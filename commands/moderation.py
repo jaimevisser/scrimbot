@@ -1,3 +1,5 @@
+from datetime import datetime, timezone, timedelta
+
 import discord
 from discord import Option, slash_command
 from discord.ext.commands import Cog
@@ -141,13 +143,23 @@ class Moderation(Cog):
     @slash_command()
     async def scrim_top(self, ctx,
                         limit: Option(int, "How long should the top be?", default=20),
+                        period: Option(str, "How long should I look back?", choices=["All", "Week", "Month"],
+                                       default="All"),
                         ephemeral: Option(str, "Show it just for you?", choices=["Yes", "No"], default="Yes")
                         ):
         """Display the list of all users that played scrims"""
         guild = await self.guilds.get(ctx.guild_id)
-        entries = guild.log.print_scrim_top()
+
+        start_time = datetime.min
+
+        if period == "Week":
+            start_time = datetime.now(timezone.utc) - timedelta(weeks=1)
+        elif period == "Month":
+            start_time = datetime.now(timezone.utc).replace(day=1) - timedelta(days=1)
+
+        entries = guild.log.print_scrim_top(start_time)
 
         if limit > 0:
             entries = entries[0:limit]
 
-        await scrimbot.utils.print(ctx, "", entries, "**Scrim top**", ephemeral=(ephemeral == "Yes"))
+        await scrimbot.utils.print(ctx, "", entries, f"**Scrim top** ({period})", ephemeral=(ephemeral == "Yes"))

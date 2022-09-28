@@ -51,8 +51,10 @@ class Log:
         return len([d for d in self.__log
                     if d['type'] == "warning" and d['user'] == user and d['time'] > start_time])
 
-    def scrim_count(self, user: int) -> int:
-        return len([d for d in self.__log if d['type'] == "scrim" and d['user'] == user])
+    def scrim_count(self, user: int, start_time=datetime.min) -> int:
+        timestamp = 0 if start_time == datetime.min else start_time.timestamp()
+        return len([d for d in self.__log
+                    if d['type'] == "scrim" and d['user'] == user and d['time'] > timestamp])
 
     def daily_report_count(self, user: int) -> int:
         start_time = (datetime.now(timezone.utc) - timedelta(days=1)).timestamp()
@@ -118,11 +120,11 @@ class Log:
         warning_list.sort(key=lambda x: x[selected], reverse=True)
         return [f"<@{x['user']}> {x['warns']}/{x['recents']}" for x in warning_list]
 
-    def print_scrim_top(self) -> list:
+    def print_scrim_top(self, start_time=datetime.min) -> list:
         users = set([x["user"] for x in self.__log if x["type"] == "scrim"])
         top_list = [{
             "user": x,
-            "scrims": self.scrim_count(x),
+            "scrims": self.scrim_count(x, start_time=start_time),
             "oculus": self.__get_user(x).get("name", "")
         } for x in users]
         top_list.sort(key=lambda x: x["scrims"], reverse=True)
