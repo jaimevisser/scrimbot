@@ -58,7 +58,8 @@ class OculusProfiles:
         async with self.__session.get(f"https://api.ignitevr.gg/ignitevr/stats/player/{oculus_name}") as resp:
             content = await resp.json()
 
-        aka = content.get('player', {}).get('previous_names', [])
+        player = {} if content is None else content.get('player', {})
+        aka = [] if player is None else player.get('previous_names', [])
 
         self.__profiles.data[str(user.id)] = {
             "name": oculus_name,
