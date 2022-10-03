@@ -4,6 +4,7 @@ import re
 from datetime import timedelta, datetime, timezone
 
 import discord
+import pytz
 from discord import Option, slash_command
 from discord.ext.commands import Cog
 
@@ -18,9 +19,14 @@ class Scrim(Cog):
     def __init__(self, guilds: Guilds):
         self.guilds = guilds
 
+    async def timezone_search(self, ctx: discord.AutocompleteContext):
+        return [tz for tz in pytz.common_timezones if ctx.value.lower() in tz.lower()]
+
     @slash_command()
     async def scrim(self, ctx,
                     time: Option(str, "Time when the scrim will start, format must be 14:00, 14.00 or 1400"),
+                    time_zone: Option(str, "Timezone, if your time is in another timezone then the server",
+                                      autocomplete=timezone_search, required=False),
                     name: Option(str, "Give this scrim a name", required=False),
                     size: Option(int, "Number of players for this scrim, the default is 8", required=False)
                     ):
@@ -45,11 +51,15 @@ class Scrim(Cog):
             await ctx.respond("Invalid time.", ephemeral=True)
             return
 
-        guild_time = datetime.now(guild.timezone)
-        scrim_time = guild_time.replace(hour=int(scrim_hour), minute=int(scrim_minute), second=0, microsecond=0)
+        local_tz = guild.timezone if timezone is None else pytz.timezone(time_zone)
 
-        if scrim_time < guild_time:
+        local_time = datetime.now(local_tz)
+        scrim_time = local_time.replace(hour=int(scrim_hour), minute=int(scrim_minute), second=0, microsecond=0)
+
+        if scrim_time < local_time:
             scrim_time += timedelta(days=1)
+
+        scrim_time = scrim_time.astimezone(guild.timezone)
 
         scrim_timestamp = math.floor(scrim_time.timestamp())
 
