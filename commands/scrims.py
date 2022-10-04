@@ -51,7 +51,7 @@ class Scrim(Cog):
             await ctx.respond("Invalid time.", ephemeral=True)
             return
 
-        local_tz = guild.timezone if timezone is None else pytz.timezone(time_zone)
+        local_tz = guild.timezone if time_zone is None else pytz.timezone(time_zone)
 
         local_time = datetime.now(local_tz)
         scrim_time = local_time.replace(hour=int(scrim_hour), minute=int(scrim_minute), second=0, microsecond=0)
@@ -60,6 +60,8 @@ class Scrim(Cog):
             scrim_time += timedelta(days=1)
 
         scrim_time = scrim_time.astimezone(guild.timezone)
+        scrim_hour = str(scrim_time.hour).rjust(2, '0')
+        scrim_minute = str(scrim_minute).rjust(2, '0')
 
         scrim_timestamp = math.floor(scrim_time.timestamp())
 
