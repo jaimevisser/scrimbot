@@ -17,7 +17,9 @@
       "broadcast_channel": <Channel_ID>,
       "ping_cooldown": 5,
       "scrimmer_role": <Role_ID>,
-      "prefix": "Team Scrim"
+      "prefix": "Team Scrim",
+      "motd": ["A random 'Message of the day/tip' that will show at the start of a scrim", "Another random message"],
+      "motd_title": "Title for the 'Message of the day/tip'"
     }
   }
 }

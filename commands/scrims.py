@@ -1,5 +1,6 @@
 import logging
 import math
+import random
 import re
 from datetime import timedelta, datetime, timezone
 
@@ -108,6 +109,15 @@ class Scrim(Cog):
         guild.create_scrim_manager(scrim_obj)
 
         await respond(f"Scrim created for {tag.time(scrim_time)} (your local time)")
+
+        motd = scrim_obj.settings['motd']
+        motd_title = scrim_obj.settings['motd_title']
+        if len(motd) > 0:
+            embed = discord.Embed(title=motd_title,
+                                  description=random.choice(motd),
+                                  type="rich",
+                                  colour=discord.Colour.dark_red())
+            await thread.send(embeds=[embed])
 
     @slash_command(name="active-scrims")
     async def active_scrims(self, ctx):

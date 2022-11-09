@@ -1,4 +1,3 @@
-import json
 from typing import Type, Callable
 
 import pytz
@@ -67,9 +66,8 @@ class ParseException(Exception):
 
 
 class Settings:
-
     DEFAULT = {
-        "server":{
+        "server": {
             "timezone": "UTC"
         }
     }
@@ -94,7 +92,9 @@ class Settings:
                 "broadcast_channel": ChannelSetting(self.__channels),
                 "ping_cooldown": Setting(int, 5),
                 "scrimmer_role": RoleSetting(self.__roles),
-                "prefix": Setting(str, "Mixed Scrim")
+                "prefix": Setting(str, "Mixed Scrim"),
+                "motd": Setting(list[str], []),
+                "motd_title": Setting(str, "A word from your friendly admins:")
             },
             "channel": {}
         }
