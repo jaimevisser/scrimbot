@@ -117,6 +117,8 @@ class ScrimManager:
         return False
 
     def create_rich_embed(self) -> discord.Embed:
+        _log.info(self.scrim.settings)
+
         embed = discord.Embed(title=self.scrim.name,
                               description=self.scrim.scrim_time(separator='\n'),
                               type="rich",

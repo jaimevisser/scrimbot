@@ -29,7 +29,7 @@ class Scrim(Cog):
                     time_zone: Option(str, "Timezone, if your time is in another timezone then the server",
                                       autocomplete=timezone_search, required=False),
                     name: Option(str, "Give this scrim a name", required=False),
-                    size: Option(int, "Number of players for this scrim, the default is 8", required=False)
+                    size: Option(int, "Number of players for this scrim", required=False)
                     ):
         """Start a scrim in this channel."""
         guild = await self.guilds.get(ctx.guild_id)

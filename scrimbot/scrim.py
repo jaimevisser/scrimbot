@@ -1,9 +1,11 @@
+import logging
 from datetime import tzinfo, datetime
 from typing import Optional, Callable
 
 import scrimbot
 from scrimbot import tag
 
+_log = logging.getLogger(__name__)
 
 class Scrim:
     def __init__(self, *, data: dict = None, timezone: tzinfo = None, sync: Callable = None, log: scrimbot.Log = None):
