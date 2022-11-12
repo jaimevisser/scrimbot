@@ -9,7 +9,7 @@ class Scrim:
     def __init__(self, *, data: dict = None, timezone: tzinfo = None, sync: Callable = None, log: scrimbot.Log = None):
         self.data = data
         self.__name = data.get("name", None)
-        self.size = data.get("size", 8)
+        self.__size = data.get("size", None)
         self.time = datetime.fromtimestamp(data["time"], timezone)
         self.timezone = timezone
         self.author = self.data["author"]
@@ -22,6 +22,10 @@ class Scrim:
 
         if "reserve" not in self.data:
             self.data["reserve"] = []
+
+    @property
+    def size(self):
+        return self.__size if self.__size is not None else self.settings["size"]
 
     @property
     def id(self):
