@@ -10,16 +10,17 @@
     "broadcast_channel": <Channel_ID>,
     "ping_cooldown": 5,
     "scrimmer_role": <Role_ID>,
-    "prefix": "Mixed Scrim"
+    "size": <Default scrim size, 8 if not set>,
+    "prefix": "Mixed Scrim",
+    "motd": [
+      "A random 'Message of the day/tip' that will show at the start of a scrim",
+      "Another random message"
+    ],
+    "motd_title": "Title for the 'Message of the day/tip'"
   },
   "channel": {
     "<Channel_ID>": {
-      "broadcast_channel": <Channel_ID>,
-      "ping_cooldown": 5,
-      "scrimmer_role": <Role_ID>,
-      "prefix": "Team Scrim",
-      "motd": ["A random 'Message of the day/tip' that will show at the start of a scrim", "Another random message"],
-      "motd_title": "Title for the 'Message of the day/tip'"
+      <All settings from channel_defaults can be applied here>
     }
   }
 }

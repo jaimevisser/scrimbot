@@ -91,9 +91,10 @@ class Settings:
             "channel_defaults": {
                 "broadcast_channel": ChannelSetting(self.__channels),
                 "ping_cooldown": Setting(int, 5),
+                "size": Setting(int, 8),
                 "scrimmer_role": RoleSetting(self.__roles),
                 "prefix": Setting(str, "Mixed Scrim"),
-                "motd": Setting(list[str], []),
+                "motd": Setting(list, []),
                 "motd_title": Setting(str, "A word from your friendly admins:")
             },
             "channel": {}

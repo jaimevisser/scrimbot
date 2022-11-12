@@ -36,7 +36,7 @@ class Settings(Cog):
         except TimeoutError:
             return await ctx.send_followup("Sorry, you took too long. I stopped listening.")
 
-        if response.attachments.count() != 1:
+        if len(response.attachments) != 1:
             return await ctx.send_followup("I need a single file, I don't know what to do with this")
 
         data = json.loads(await response.attachments.pop().read())

@@ -17,6 +17,7 @@ class Guild:
         self.id = str(id)
         self.name = str(id)
         self.bot: discord.Bot = bot
+        self.discord_guild: Optional[discord.Guild] = self.bot.get_guild(int(id))
         self.settings = scrimbot.Settings(
             scrimbot.Store[dict](f"data/{self.id}-settings.json", scrimbot.Settings.DEFAULT),
             lambda: set([x.id for x in self.discord_guild.channels]),
@@ -31,7 +32,6 @@ class Guild:
         self.scrim_managers: list[scrimbot.ScrimManager] = []
         self.broadcasts: list[scrimbot.Broadcaster] = []
         self.__invite_channel: Optional[discord.TextChannel] = None
-        self.discord_guild: Optional[discord.Guild] = None
         self.__timeout_role = self.settings.server.get("timeout_role", None)
 
         for scrim in self.__scrims.data:
@@ -58,6 +58,15 @@ class Guild:
     async def reload(self):
         self.__timeout_role = self.settings.server.get("timeout_role", None)
         self.__invite_channel: Optional[discord.TextChannel] = None
+
+        channels = set([x.id for x in await self.discord_guild.fetch_channels()])
+        roles = set([x.id for x in await self.discord_guild.fetch_roles()])
+
+        self.settings = scrimbot.Settings(
+            scrimbot.Store[dict](f"data/{self.id}-settings.json", scrimbot.Settings.DEFAULT),
+            lambda: channels,
+            lambda: roles)
+
         self.mod_channel = None
         self.mod_channel = await self.fetch_mod_channel()
 
@@ -71,11 +80,6 @@ class Guild:
             self.broadcasts.append(scrimbot.Broadcaster(b, self))
 
         await self.update_broadcasts()
-
-        self.settings = scrimbot.Settings(
-            scrimbot.Store[dict](f"data/{self.id}-settings.json", scrimbot.Settings.DEFAULT),
-            lambda: set([x.id for x in self.discord_guild.channels]),
-            lambda: set([x.id for x in self.discord_guild.roles]))
 
     async def fetch_mod_channel(self):
         server_settings = self.settings.server
