@@ -1,5 +1,5 @@
 import logging
-from datetime import tzinfo, datetime
+from datetime import tzinfo, datetime, timedelta
 from typing import Optional, Callable
 
 import scrimbot
@@ -14,7 +14,7 @@ class Scrim:
         self.__size = data.get("size", None)
         self.time = datetime.fromtimestamp(data["time"], timezone)
         self.timezone = timezone
-        self.author = self.data["author"]
+        self.author = self.data.get("author", None)
         self.settings: Optional[dict] = None
         self.__sync = sync
         self.__log = log
@@ -219,3 +219,6 @@ class Scrim:
         local_time = tag.time(self.time)
         timezone = "server" if self.timezone is None else self.timezone.zone
         return f"{server_time} ({timezone}){separator}{local_time} (your local time)"
+
+    def overlaps_with(self, scrim):
+        return abs(self.time - scrim.time) < timedelta(hours=1)
