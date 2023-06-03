@@ -115,3 +115,6 @@ dmypy.json
 
 # Bot data
 data/**
+
+#Appple
+.DS_Store
